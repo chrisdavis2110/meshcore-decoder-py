@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meshcore-decoder"
+version = "0.1.0"
+authors = [
+    {name = "Michael Hart", email = "michaelhart@michaelhart.me"},
+    {name = "Chris Davis", email = "chrisdavis2110@gmail.com"}
+]
+description = "Complete Python implementation of the MeshCore Packet Decoder"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+keywords = ["meshcore", "decoder", "packet", "mesh", "networking"]
+dependencies = [
+    "pycryptodome>=3.19.0",
+    "cryptography>=41.0.0",
+    "click>=8.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "pylint>=2.17.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/michaelhart/meshcore-decoder"
+Repository = "https://github.com/michaelhart/meshcore-decoder"
+Issues = "https://github.com/michaelhart/meshcore-decoder/issues"
+
+[tool.setuptools]
+packages = ["src", "src.decoder", "src.crypto", "src.types", "src.utils", "src.decoder.payload_decoders"]
+
+[tool.setuptools.py-modules]
+cli = "cli"
+index = "index"
+
+[project.scripts]
+meshcore-decode = "cli:main"

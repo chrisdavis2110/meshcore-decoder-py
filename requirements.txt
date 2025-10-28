@@ -1,0 +1,19 @@
+# MeshCore Decoder - Python Requirements
+# Copyright (c) 2025 Michael Hart: https://github.com/michaelhart/meshcore-decoder
+# MIT License
+
+# Core cryptography libraries
+pycryptodome>=3.19.0
+
+# Ed25519 signature support
+cryptography>=41.0.0  # Includes Ed25519 support
+# Alternative: ed25519>=1.4  # Pure Python Ed25519
+
+# CLI support (optional)
+click>=8.1.0  # For CLI improvements
+
+# Development (optional)
+# pytest>=7.0.0
+# pytest-cov>=4.0.0
+# black>=23.0.0
+# pylint>=2.17.0
