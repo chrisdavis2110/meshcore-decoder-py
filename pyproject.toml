@@ -42,9 +42,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/michaelhart/meshcore-decoder"
-Repository = "https://github.com/michaelhart/meshcore-decoder"
-Issues = "https://github.com/michaelhart/meshcore-decoder/issues"
+Homepage = "https://github.com/chrisdavis2110/meshcore-decoder-py"
+Repository = "https://github.com/chrisdavis2110/meshcore-decoder-py"
+Issues = "https://github.com/chrisdavis2110/meshcore-decoder-py/issues"
 
 [tool.setuptools]
 packages = ["src", "src.decoder", "src.crypto", "src.types", "src.utils", "src.decoder.payload_decoders"]

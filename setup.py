@@ -17,12 +17,12 @@ all_packages = find_packages()
 setup(
     name="meshcore-decoder",
     version="0.1.0",
-    author="Michael Hart",
-    author_email="michaelhart@michaelhart.me",
+    author="Chris Davis",
+    author_email="chrisdavis2110@gmail.com",
     description="Complete Python implementation of the MeshCore Packet Decoder",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/michaelhart/meshcore-decoder",
+    url="https://github.com/chrisdavis2110/meshcore-decoder-py",
     packages=all_packages,
     # Include root-level modules (cli.py and index.py)
     py_modules=["cli", "index"],
