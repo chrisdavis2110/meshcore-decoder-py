@@ -6,8 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "meshcore-decoder"
 version = "0.1.0"
 authors = [
-    {name = "Michael Hart", email = "michaelhart@michaelhart.me"},
-    {name = "Chris Davis", email = "chrisdavis2110@gmail.com"}
+    {name = "Chris Davis", email = "chrisdavis2110@gmail.com"},
+    {name = "Michael Hart", email = "michaelhart@michaelhart.me"}
 ]
 description = "Complete Python implementation of the MeshCore Packet Decoder"
 readme = "README.md"
@@ -48,10 +48,7 @@ Issues = "https://github.com/chrisdavis2110/meshcore-decoder-py/issues"
 
 [tool.setuptools]
 packages = ["src", "src.decoder", "src.crypto", "src.types", "src.utils", "src.decoder.payload_decoders"]
-
-[tool.setuptools.py-modules]
-cli = "cli"
-index = "index"
+py-modules = ["cli", "index"]
 
 [project.scripts]
 meshcore-decode = "cli:main"
