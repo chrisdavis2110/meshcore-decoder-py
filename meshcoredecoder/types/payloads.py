@@ -4,7 +4,7 @@ Reference: https://github.com/meshcore-dev/MeshCore/blob/main/docs/payloads.md
 """
 
 from typing import Dict, Optional, List, Any
-from src.types.enums import PayloadType, PayloadVersion, DeviceRole, RequestType
+from .enums import PayloadType, PayloadVersion, DeviceRole, RequestType
 
 
 class BasePayload:

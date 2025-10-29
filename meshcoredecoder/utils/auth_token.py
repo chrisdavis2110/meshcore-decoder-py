@@ -9,7 +9,7 @@ import base64
 import json
 from typing import Dict, Optional, Any
 from datetime import datetime
-from src.utils.hex import bytes_to_hex, hex_to_bytes
+from .hex import bytes_to_hex, hex_to_bytes
 
 
 class AuthTokenPayload:

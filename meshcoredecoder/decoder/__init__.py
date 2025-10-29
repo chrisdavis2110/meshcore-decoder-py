@@ -1,6 +1,6 @@
 """Decoder module"""
-from src.decoder.packet_decoder import MeshCorePacketDecoder
-from src.decoder.payload_decoders import (
+from .packet_decoder import MeshCorePacketDecoder
+from .payload_decoders import (
     AckPayloadDecoder,
     TracePayloadDecoder,
     PathPayloadDecoder,

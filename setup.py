@@ -11,11 +11,11 @@ with open("README.md", "r", encoding="utf-8") as fh:
 with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
-# Find all packages in the current directory (will find 'src' and its subpackages)
+# Find all packages in the current directory (will find 'meshcoredecoder' and its subpackages)
 all_packages = find_packages()
 
 setup(
-    name="meshcore-decoder",
+    name="meshcoredecoder",
     version="0.1.0",
     author="Chris Davis",
     author_email="chrisdavis2110@gmail.com",

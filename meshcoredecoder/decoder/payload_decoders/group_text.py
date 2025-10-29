@@ -6,12 +6,12 @@ GroupText payload decoder with decryption support
 """
 
 from typing import Optional, Dict, Any, List
-from src.types.payloads import GroupTextPayload
-from src.types.packet import PayloadSegment
-from src.types.enums import PayloadType, PayloadVersion
-from src.types.crypto import DecryptionOptions, CryptoKeyStore
-from src.crypto.channel_crypto import ChannelCrypto
-from src.utils.hex import byte_to_hex, bytes_to_hex
+from ...types.payloads import GroupTextPayload
+from ...types.packet import PayloadSegment
+from ...types.enums import PayloadType, PayloadVersion
+from ...types.crypto import DecryptionOptions, CryptoKeyStore
+from ...crypto.channel_crypto import ChannelCrypto
+from ...utils.hex import byte_to_hex, bytes_to_hex
 
 
 class GroupTextPayloadDecoder:

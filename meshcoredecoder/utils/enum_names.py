@@ -5,7 +5,7 @@ MIT License
 Utility functions to get human-readable names for enum values
 """
 
-from src.types.enums import RouteType, PayloadType, PayloadVersion, DeviceRole, RequestType
+from ..types.enums import RouteType, PayloadType, PayloadVersion, DeviceRole, RequestType
 
 
 def get_route_type_name(route_type: RouteType) -> str:

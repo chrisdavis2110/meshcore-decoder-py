@@ -19,7 +19,7 @@ pip install -r requirements.txt
 ### Install via pip (if published)
 
 ```bash
-pip install meshcore-decoder
+pip install meshcoredecoder
 ```
 
 ## Requirements
@@ -31,14 +31,14 @@ pip install meshcore-decoder
 ## Quick Start
 
 ```python
-from src.decoder.packet_decoder import MeshCorePacketDecoder
-from src.types.enums import PayloadType
-from src.utils.enum_names import get_route_type_name, get_payload_type_name, get_device_role_name
+from meshcoredecoder import MeshCoreDecoder
+from meshcoredecoder.types.enums import PayloadType
+from meshcoredecoder.utils.enum_names import get_route_type_name, get_payload_type_name, get_device_role_name
 import json
 
 # Decode a MeshCore packet
 hex_data = '11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172'
-packet = MeshCorePacketDecoder.decode(hex_data)
+packet = MeshCoreDecoder.decode(hex_data)
 
 print(f"Route Type: {get_route_type_name(packet.route_type)}")
 print(f"Payload Type: {get_payload_type_name(packet.payload_type)}")
@@ -58,12 +58,12 @@ if packet.payload_type == PayloadType.Advert and packet.payload.get('decoded'):
 Here's what a complete decoded packet looks like:
 
 ```python
-from src.decoder.packet_decoder import MeshCorePacketDecoder
+from meshcoredecoder import MeshCoreDecoder
 import json
 
 hex_data = '11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172'
 
-packet = MeshCorePacketDecoder.decode(hex_data)
+packet = MeshCoreDecoder.decode(hex_data)
 
 packet_dict = packet.to_dict()
 print(json.dumps(packet_dict, indent=2, default=str))
@@ -110,10 +110,10 @@ print(json.dumps(packet_dict, indent=2, default=str))
 Simply provide your channel secret keys and the library handles everything else:
 
 ```python
-from src.decoder.packet_decoder import MeshCorePacketDecoder
-from src.crypto.key_manager import MeshCoreKeyStore
-from src.types.crypto import DecryptionOptions
-from src.types.enums import PayloadType
+from meshcoredecoder import MeshCoreDecoder
+from meshcoredecoder.crypto import MeshCoreKeyStore
+from meshcoredecoder.types.crypto import DecryptionOptions
+from meshcoredecoder.types.enums import PayloadType
 
 # Create a key store with channel secret keys
 key_store = MeshCoreKeyStore({
@@ -127,7 +127,7 @@ group_text_hex_data = '...'  # Your encrypted GroupText packet hex
 
 # Decode encrypted GroupText message
 options = DecryptionOptions(key_store=key_store)
-encrypted_packet = MeshCorePacketDecoder.decode(group_text_hex_data, options)
+encrypted_packet = MeshCoreDecoder.decode(group_text_hex_data, options)
 
 if encrypted_packet.payload_type == PayloadType.GroupText and encrypted_packet.payload.get('decoded'):
     group_text = encrypted_packet.payload['decoded']
@@ -150,11 +150,11 @@ The library automatically:
 
 ```python
 import asyncio
-from src.decoder.packet_decoder import MeshCorePacketDecoder
+from meshcoredecoder import MeshCoreDecoder
 
 # Async verification for Ed25519 signatures
 async def verify_packet():
-    packet = await MeshCorePacketDecoder.decode_with_verification(hex_data)
+    packet = await MeshCoreDecoder.decode_with_verification(hex_data)
 
     if packet.payload.get('decoded'):
         advert = packet.payload['decoded']
@@ -169,7 +169,7 @@ asyncio.run(verify_packet())
 For detailed packet analysis and debugging, use `analyze_structure()` to get byte-level breakdowns:
 
 ```python
-from src.decoder.packet_decoder import MeshCorePacketDecoder
+from meshcoredecoder import MeshCoreDecoder
 
 print('=== Packet Breakdown ===')
 hex_data = '11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172'
@@ -177,7 +177,7 @@ hex_data = '11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C9400
 print(f"Packet length: {len(hex_data)}")
 print(f"Expected bytes: {len(hex_data) / 2}")
 
-structure = MeshCorePacketDecoder.analyze_structure(hex_data)
+structure = MeshCoreDecoder.analyze_structure(hex_data)
 print('\nMain segments:')
 for i, seg in enumerate(structure.segments):
     print(f"{i+1}. {seg.name} (bytes {seg.start_byte}-{seg.end_byte}): {seg.value}")
@@ -227,7 +227,7 @@ The `analyze_structure()` method provides:
 The library includes MeshCore-compatible Ed25519 key derivation using the exact orlp/ed25519 algorithm:
 
 ```python
-from src.crypto.ed25519_verifier import derive_public_key, validate_key_pair
+from meshcoredecoder.crypto import derive_public_key, validate_key_pair
 
 # Derive public key from MeshCore private key (64-byte format)
 private_key = '18469d6140447f77de13cd8d761e605431f52269fbff43b0925752ed9e6745435dc6a86d2568af8b70d3365db3f88234760c8ecc645ce469829bc45b65f1d5d5'

@@ -6,10 +6,10 @@ Trace payload decoder
 """
 
 from typing import Optional, Dict, Any, List
-from src.types.payloads import TracePayload
-from src.types.packet import PayloadSegment
-from src.types.enums import PayloadType, PayloadVersion
-from src.utils.hex import byte_to_hex, bytes_to_hex, number_to_hex
+from ...types.payloads import TracePayload
+from ...types.packet import PayloadSegment
+from ...types.enums import PayloadType, PayloadVersion
+from ...utils.hex import byte_to_hex, bytes_to_hex, number_to_hex
 
 
 class TracePayloadDecoder:

@@ -6,8 +6,8 @@ Key management for MeshCore crypto operations
 """
 
 from typing import Dict, List, Optional
-from src.types.crypto import CryptoKeyStore
-from src.crypto.channel_crypto import ChannelCrypto
+from ..types.crypto import CryptoKeyStore
+from .channel_crypto import ChannelCrypto
 
 
 class MeshCoreKeyStore:

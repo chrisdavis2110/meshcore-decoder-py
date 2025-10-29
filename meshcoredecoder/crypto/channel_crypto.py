@@ -10,8 +10,8 @@ import hashlib
 import re
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
-from src.types.crypto import DecryptionResult
-from src.utils.hex import hex_to_bytes, bytes_to_hex
+from ..types.crypto import DecryptionResult
+from ..utils.hex import hex_to_bytes, bytes_to_hex
 
 
 class ChannelCrypto:

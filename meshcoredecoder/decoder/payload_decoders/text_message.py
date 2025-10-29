@@ -6,9 +6,9 @@ TextMessage payload decoder
 """
 
 from typing import Optional, Dict, Any
-from src.types.payloads import TextMessagePayload
-from src.types.enums import PayloadType, PayloadVersion
-from src.utils.hex import byte_to_hex, bytes_to_hex
+from ...types.payloads import TextMessagePayload
+from ...types.enums import PayloadType, PayloadVersion
+from ...utils.hex import byte_to_hex, bytes_to_hex
 
 
 class TextMessagePayloadDecoder:

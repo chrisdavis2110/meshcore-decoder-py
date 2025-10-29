@@ -1,9 +1,9 @@
 """Type definitions"""
-from src.types.enums import (
+from .enums import (
     RouteType, PayloadType, PayloadVersion, DeviceRole, AdvertFlags, RequestType
 )
-from src.types.crypto import CryptoKeyStore, DecryptionOptions, DecryptionResult, ValidationResult
-from src.types.packet import DecodedPacket, PacketStructure, PacketSegment, PayloadSegment, HeaderBreakdown
+from .crypto import CryptoKeyStore, DecryptionOptions, DecryptionResult, ValidationResult
+from .packet import DecodedPacket, PacketStructure, PacketSegment, PayloadSegment, HeaderBreakdown
 
 __all__ = [
     # Enums

@@ -6,7 +6,7 @@ Ed25519 signature verification for MeshCore packets
 """
 
 from typing import Optional
-from src.utils.hex import hex_to_bytes, bytes_to_hex
+from ..utils.hex import hex_to_bytes, bytes_to_hex
 
 try:
     from cryptography.hazmat.primitives.asymmetric import ed25519

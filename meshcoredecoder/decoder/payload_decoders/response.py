@@ -2,41 +2,41 @@
 Copyright (c) 2025 Michael Hart: https://github.com/michaelhart/meshcore-decoder
 MIT License
 
-AnonRequest payload decoder
+Response payload decoder
 """
 
 from typing import Optional, Dict, Any, List
-from src.types.payloads import AnonRequestPayload
-from src.types.packet import PayloadSegment
-from src.types.enums import PayloadType, PayloadVersion
-from src.utils.hex import byte_to_hex, bytes_to_hex
+from ...types.payloads import ResponsePayload
+from ...types.packet import PayloadSegment
+from ...types.enums import PayloadType, PayloadVersion
+from ...utils.hex import byte_to_hex, bytes_to_hex
 
 
-class AnonRequestPayloadDecoder:
+class ResponsePayloadDecoder:
     @staticmethod
     def decode(
         payload: bytes,
         options: Optional[Dict[str, Any]] = None
-    ) -> Optional[AnonRequestPayload]:
-        """Decode an AnonRequest payload"""
+    ) -> Optional[ResponsePayload]:
+        """Decode a Response payload"""
         if options is None:
             options = {}
 
         try:
-            # Based on MeshCore payloads.md - AnonRequest payload structure:
+            # Based on MeshCore payloads.md - Response payload structure:
             # - destination_hash (1 byte)
-            # - sender_public_key (32 bytes)
+            # - source_hash (1 byte)
             # - cipher_mac (2 bytes)
             # - ciphertext (rest of payload)
 
-            if len(payload) < 35:
-                result = AnonRequestPayload(
-                    payload_type=PayloadType.AnonRequest,
+            if len(payload) < 4:
+                result = ResponsePayload(
+                    payload_type=PayloadType.Response,
                     version=PayloadVersion.Version1,
                     is_valid=False,
-                    errors=['AnonRequest payload too short (minimum 35 bytes: dest + public key + MAC)'],
+                    errors=['Response payload too short (minimum 4 bytes: dest + source + MAC)'],
                     destination_hash='',
-                    sender_public_key='',
+                    source_hash='',
                     cipher_mac='',
                     ciphertext='',
                     ciphertext_length=0
@@ -44,8 +44,8 @@ class AnonRequestPayloadDecoder:
 
                 if options.get('include_segments'):
                     result.segments = [PayloadSegment(
-                        name='Invalid AnonRequest Data',
-                        description='AnonRequest payload too short (minimum 35 bytes required: 1 for dest hash + 32 for public key + 2 for MAC)',
+                        name='Invalid Response Data',
+                        description='Response payload too short (minimum 4 bytes required)',
                         start_byte=options.get('segment_offset', 0),
                         end_byte=(options.get('segment_offset', 0) + len(payload) - 1),
                         value=bytes_to_hex(payload)
@@ -57,66 +57,62 @@ class AnonRequestPayloadDecoder:
             segment_offset = options.get('segment_offset', 0)
             offset = 0
 
-            # Parse destination hash (1 byte)
-            destination_hash = byte_to_hex(payload[0])
-
+            # Destination Hash (1 byte)
+            destination_hash = byte_to_hex(payload[offset])
             if options.get('include_segments'):
                 segments.append(PayloadSegment(
                     name='Destination Hash',
-                    description=f'First byte of destination node public key: 0x{destination_hash}',
+                    description='First byte of destination node public key',
                     start_byte=segment_offset + offset,
                     end_byte=segment_offset + offset,
                     value=destination_hash
                 ))
             offset += 1
 
-            # Parse sender public key (32 bytes)
-            sender_public_key = bytes_to_hex(payload[1:33])
-
+            # Source hash (1 byte)
+            source_hash = byte_to_hex(payload[offset])
             if options.get('include_segments'):
                 segments.append(PayloadSegment(
-                    name='Sender Public Key',
-                    description='Ed25519 public key of the sender (32 bytes)',
+                    name='Source Hash',
+                    description='First byte of source node public key',
                     start_byte=segment_offset + offset,
-                    end_byte=segment_offset + offset + 31,
-                    value=sender_public_key
+                    end_byte=segment_offset + offset,
+                    value=source_hash
                 ))
-            offset += 32
+            offset += 1
 
-            # Parse cipher MAC (2 bytes)
-            cipher_mac = bytes_to_hex(payload[33:35])
-
+            # Cipher MAC (2 bytes)
+            cipher_mac = bytes_to_hex(payload[offset:offset + 2])
             if options.get('include_segments'):
                 segments.append(PayloadSegment(
                     name='Cipher MAC',
-                    description='MAC for encrypted data verification (2 bytes)',
+                    description='MAC for encrypted data in next field',
                     start_byte=segment_offset + offset,
                     end_byte=segment_offset + offset + 1,
                     value=cipher_mac
                 ))
             offset += 2
 
-            # Parse ciphertext (remaining bytes)
-            ciphertext = bytes_to_hex(payload[35:])
-
-            if options.get('include_segments') and len(payload) > 35:
+            # Ciphertext (remaining bytes)
+            ciphertext = bytes_to_hex(payload[offset:])
+            if options.get('include_segments') and len(payload) > offset:
                 segments.append(PayloadSegment(
                     name='Ciphertext',
-                    description=f'Encrypted message data ({len(payload) - 35} bytes). Contains encrypted plaintext with timestamp, sync timestamp (room server only), and password',
+                    description='Encrypted response data (tag + content)',
                     start_byte=segment_offset + offset,
                     end_byte=segment_offset + len(payload) - 1,
                     value=ciphertext
                 ))
 
-            result = AnonRequestPayload(
-                payload_type=PayloadType.AnonRequest,
+            result = ResponsePayload(
+                payload_type=PayloadType.Response,
                 version=PayloadVersion.Version1,
                 is_valid=True,
                 destination_hash=destination_hash,
-                sender_public_key=sender_public_key,
+                source_hash=source_hash,
                 cipher_mac=cipher_mac,
                 ciphertext=ciphertext,
-                ciphertext_length=len(payload) - 35
+                ciphertext_length=len(payload) - 4
             )
 
             if options.get('include_segments'):
@@ -124,13 +120,13 @@ class AnonRequestPayloadDecoder:
 
             return result
         except Exception as error:
-            return AnonRequestPayload(
-                payload_type=PayloadType.AnonRequest,
+            return ResponsePayload(
+                payload_type=PayloadType.Response,
                 version=PayloadVersion.Version1,
                 is_valid=False,
                 errors=[str(error)],
                 destination_hash='',
-                sender_public_key='',
+                source_hash='',
                 cipher_mac='',
                 ciphertext='',
                 ciphertext_length=0

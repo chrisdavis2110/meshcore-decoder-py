@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "meshcore-decoder"
+name = "meshcoredecoder"
 version = "0.1.0"
 authors = [
     {name = "Chris Davis", email = "chrisdavis2110@gmail.com"},
@@ -47,7 +47,7 @@ Repository = "https://github.com/chrisdavis2110/meshcore-decoder-py"
 Issues = "https://github.com/chrisdavis2110/meshcore-decoder-py/issues"
 
 [tool.setuptools]
-packages = ["src", "src.decoder", "src.crypto", "src.types", "src.utils", "src.decoder.payload_decoders"]
+packages = ["meshcoredecoder", "meshcoredecoder.decoder", "meshcoredecoder.crypto", "meshcoredecoder.types", "meshcoredecoder.utils", "meshcoredecoder.decoder.payload_decoders"]
 py-modules = ["cli", "index"]
 
 [project.scripts]

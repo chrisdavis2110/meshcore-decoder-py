@@ -3,7 +3,7 @@ Packet-related type definitions
 """
 
 from typing import List, Optional, Dict, Any
-from src.types.enums import RouteType, PayloadType, PayloadVersion
+from .enums import RouteType, PayloadType, PayloadVersion
 
 
 class DecodedPacket:

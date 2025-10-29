@@ -6,9 +6,9 @@ Path payload decoder
 """
 
 from typing import Optional, Dict, Any, List
-from src.types.payloads import PathPayload
-from src.types.enums import PayloadType, PayloadVersion
-from src.utils.hex import byte_to_hex, bytes_to_hex
+from ...types.payloads import PathPayload
+from ...types.enums import PayloadType, PayloadVersion
+from ...utils.hex import byte_to_hex, bytes_to_hex
 
 
 class PathPayloadDecoder:

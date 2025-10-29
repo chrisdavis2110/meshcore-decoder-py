@@ -6,22 +6,22 @@ Main packet decoder - orchestrates all payload decoders
 """
 
 from typing import Optional, Dict, Any, List, Tuple
-from src.types.packet import DecodedPacket, PacketStructure, PacketSegment, PayloadSegment, HeaderBreakdown
-from src.types.enums import RouteType, PayloadType, PayloadVersion
-from src.utils.hex import hex_to_bytes, byte_to_hex, bytes_to_hex, number_to_hex
-from src.utils.enum_names import get_route_type_name, get_payload_type_name
-from src.types.crypto import DecryptionOptions, ValidationResult, CryptoKeyStore
-from src.crypto.key_manager import MeshCoreKeyStore
+from ..types.packet import DecodedPacket, PacketStructure, PacketSegment, PayloadSegment, HeaderBreakdown
+from ..types.enums import RouteType, PayloadType, PayloadVersion
+from ..utils.hex import hex_to_bytes, byte_to_hex, bytes_to_hex, number_to_hex
+from ..utils.enum_names import get_route_type_name, get_payload_type_name
+from ..types.crypto import DecryptionOptions, ValidationResult, CryptoKeyStore
+from ..crypto.key_manager import MeshCoreKeyStore
 
-from src.decoder.payload_decoders.ack import AckPayloadDecoder
-from src.decoder.payload_decoders.trace import TracePayloadDecoder
-from src.decoder.payload_decoders.path import PathPayloadDecoder
-from src.decoder.payload_decoders.advert import AdvertPayloadDecoder
-from src.decoder.payload_decoders.group_text import GroupTextPayloadDecoder
-from src.decoder.payload_decoders.request import RequestPayloadDecoder
-from src.decoder.payload_decoders.response import ResponsePayloadDecoder
-from src.decoder.payload_decoders.anon_request import AnonRequestPayloadDecoder
-from src.decoder.payload_decoders.text_message import TextMessagePayloadDecoder
+from .payload_decoders.ack import AckPayloadDecoder
+from .payload_decoders.trace import TracePayloadDecoder
+from .payload_decoders.path import PathPayloadDecoder
+from .payload_decoders.advert import AdvertPayloadDecoder
+from .payload_decoders.group_text import GroupTextPayloadDecoder
+from .payload_decoders.request import RequestPayloadDecoder
+from .payload_decoders.response import ResponsePayloadDecoder
+from .payload_decoders.anon_request import AnonRequestPayloadDecoder
+from .payload_decoders.text_message import TextMessagePayloadDecoder
 
 
 class MeshCorePacketDecoder:

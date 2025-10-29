@@ -11,11 +11,11 @@ import sys
 import json
 import asyncio
 from typing import List, Optional
-from src.decoder.packet_decoder import MeshCorePacketDecoder
-from src.crypto.key_manager import MeshCoreKeyStore
-from src.types.crypto import DecryptionOptions
-from src.utils.enum_names import get_route_type_name, get_payload_type_name, get_device_role_name
-from src.types.enums import PayloadType
+from meshcoredecoder import MeshCoreDecoder
+from meshcoredecoder.crypto import MeshCoreKeyStore
+from meshcoredecoder.types.crypto import DecryptionOptions
+from meshcoredecoder.utils.enum_names import get_route_type_name, get_payload_type_name, get_device_role_name
+from meshcoredecoder.types.enums import PayloadType
 
 
 def print_formatted_packet(packet, keys: Optional[List[str]] = None):
@@ -168,10 +168,10 @@ def decode_command(args):
             import asyncio
             loop = asyncio.get_event_loop()
             packet = loop.run_until_complete(
-                MeshCorePacketDecoder.decode_with_verification(clean_hex, options)
+                MeshCoreDecoder.decode_with_verification(clean_hex, options)
             )
         else:
-            packet = MeshCorePacketDecoder.decode(clean_hex, options)
+            packet = MeshCoreDecoder.decode(clean_hex, options)
 
         if args.json:
             # JSON output
@@ -181,10 +181,10 @@ def decode_command(args):
                     import asyncio
                     loop = asyncio.get_event_loop()
                     structure = loop.run_until_complete(
-                        MeshCorePacketDecoder.analyze_structure_with_verification(clean_hex, options)
+                        MeshCoreDecoder.analyze_structure_with_verification(clean_hex, options)
                     )
                 else:
-                    structure = MeshCorePacketDecoder.analyze_structure(clean_hex, options)
+                    structure = MeshCoreDecoder.analyze_structure(clean_hex, options)
                 print(json.dumps({'packet': packet.__dict__, 'structure': structure.__dict__}, indent=2, default=str))
             else:
                 print(json.dumps(packet.__dict__, indent=2, default=str))
@@ -200,10 +200,10 @@ def decode_command(args):
                     import asyncio
                     loop = asyncio.get_event_loop()
                     structure = loop.run_until_complete(
-                        MeshCorePacketDecoder.analyze_structure_with_verification(clean_hex, options)
+                        MeshCoreDecoder.analyze_structure_with_verification(clean_hex, options)
                     )
                 else:
-                    structure = MeshCorePacketDecoder.analyze_structure(clean_hex, options)
+                    structure = MeshCoreDecoder.analyze_structure(clean_hex, options)
 
                 print(f'\n{bold("Main Segments:")}')
                 for i, seg in enumerate(structure.segments):
@@ -228,7 +228,7 @@ def validate_command(args):
         # Clean up hex input
         clean_hex = args.hex.replace(' ', '').replace('0x', '').replace('0X', '')
 
-        result = MeshCorePacketDecoder.validate(clean_hex)
+        result = MeshCoreDecoder.validate(clean_hex)
 
         if result.is_valid:
             print('✅ Valid packet format')

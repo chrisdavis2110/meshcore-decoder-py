@@ -2,52 +2,50 @@
 Copyright (c) 2025 Michael Hart: https://github.com/michaelhart/meshcore-decoder
 MIT License
 
-Request payload decoder
+AnonRequest payload decoder
 """
 
 from typing import Optional, Dict, Any, List
-from src.types.payloads import RequestPayload
-from src.types.packet import PayloadSegment
-from src.types.enums import PayloadType, PayloadVersion, RequestType
-from src.utils.hex import bytes_to_hex
+from ...types.payloads import AnonRequestPayload
+from ...types.packet import PayloadSegment
+from ...types.enums import PayloadType, PayloadVersion
+from ...utils.hex import byte_to_hex, bytes_to_hex
 
 
-class RequestPayloadDecoder:
+class AnonRequestPayloadDecoder:
     @staticmethod
     def decode(
         payload: bytes,
         options: Optional[Dict[str, Any]] = None
-    ) -> Optional[RequestPayload]:
-        """Decode a Request payload"""
+    ) -> Optional[AnonRequestPayload]:
+        """Decode an AnonRequest payload"""
         if options is None:
             options = {}
 
         try:
-            # Based on MeshCore payloads.md - Request payload structure:
-            # - destination hash (1 byte)
-            # - source hash (1 byte)
-            # - cipher MAC (2 bytes)
-            # - ciphertext (rest of payload) - contains encrypted timestamp, request type, and request data
+            # Based on MeshCore payloads.md - AnonRequest payload structure:
+            # - destination_hash (1 byte)
+            # - sender_public_key (32 bytes)
+            # - cipher_mac (2 bytes)
+            # - ciphertext (rest of payload)
 
-            if len(payload) < 4:
-                result = RequestPayload(
-                    payload_type=PayloadType.Request,
+            if len(payload) < 35:
+                result = AnonRequestPayload(
+                    payload_type=PayloadType.AnonRequest,
                     version=PayloadVersion.Version1,
                     is_valid=False,
-                    errors=['Request payload too short (minimum 4 bytes: dest hash + source hash + MAC)'],
-                    timestamp=0,
-                    request_type=RequestType.GetStats,
-                    request_data='',
+                    errors=['AnonRequest payload too short (minimum 35 bytes: dest + public key + MAC)'],
                     destination_hash='',
-                    source_hash='',
+                    sender_public_key='',
                     cipher_mac='',
-                    ciphertext=''
+                    ciphertext='',
+                    ciphertext_length=0
                 )
 
                 if options.get('include_segments'):
                     result.segments = [PayloadSegment(
-                        name='Invalid Request Data',
-                        description='Request payload too short (minimum 4 bytes required: 1 for dest hash + 1 for source hash + 2 for MAC)',
+                        name='Invalid AnonRequest Data',
+                        description='AnonRequest payload too short (minimum 35 bytes required: 1 for dest hash + 32 for public key + 2 for MAC)',
                         start_byte=options.get('segment_offset', 0),
                         end_byte=(options.get('segment_offset', 0) + len(payload) - 1),
                         value=bytes_to_hex(payload)
@@ -60,7 +58,7 @@ class RequestPayloadDecoder:
             offset = 0
 
             # Parse destination hash (1 byte)
-            destination_hash = bytes_to_hex(payload[offset:offset + 1])
+            destination_hash = byte_to_hex(payload[0])
 
             if options.get('include_segments'):
                 segments.append(PayloadSegment(
@@ -72,21 +70,21 @@ class RequestPayloadDecoder:
                 ))
             offset += 1
 
-            # Parse source hash (1 byte)
-            source_hash = bytes_to_hex(payload[offset:offset + 1])
+            # Parse sender public key (32 bytes)
+            sender_public_key = bytes_to_hex(payload[1:33])
 
             if options.get('include_segments'):
                 segments.append(PayloadSegment(
-                    name='Source Hash',
-                    description=f'First byte of source node public key: 0x{source_hash}',
+                    name='Sender Public Key',
+                    description='Ed25519 public key of the sender (32 bytes)',
                     start_byte=segment_offset + offset,
-                    end_byte=segment_offset + offset,
-                    value=source_hash
+                    end_byte=segment_offset + offset + 31,
+                    value=sender_public_key
                 ))
-            offset += 1
+            offset += 32
 
             # Parse cipher MAC (2 bytes)
-            cipher_mac = bytes_to_hex(payload[offset:offset + 2])
+            cipher_mac = bytes_to_hex(payload[33:35])
 
             if options.get('include_segments'):
                 segments.append(PayloadSegment(
@@ -99,28 +97,26 @@ class RequestPayloadDecoder:
             offset += 2
 
             # Parse ciphertext (remaining bytes)
-            ciphertext = bytes_to_hex(payload[offset:])
+            ciphertext = bytes_to_hex(payload[35:])
 
-            if options.get('include_segments') and len(payload) > offset:
+            if options.get('include_segments') and len(payload) > 35:
                 segments.append(PayloadSegment(
                     name='Ciphertext',
-                    description=f'Encrypted message data ({len(payload) - offset} bytes). Contains encrypted plaintext with timestamp, request type, and request data',
+                    description=f'Encrypted message data ({len(payload) - 35} bytes). Contains encrypted plaintext with timestamp, sync timestamp (room server only), and password',
                     start_byte=segment_offset + offset,
                     end_byte=segment_offset + len(payload) - 1,
                     value=ciphertext
                 ))
 
-            result = RequestPayload(
-                payload_type=PayloadType.Request,
+            result = AnonRequestPayload(
+                payload_type=PayloadType.AnonRequest,
                 version=PayloadVersion.Version1,
                 is_valid=True,
-                timestamp=0,  # Will be decrypted if key is available
-                request_type=RequestType.GetStats,  # Default value, will be overridden if decrypted
-                request_data='',
                 destination_hash=destination_hash,
-                source_hash=source_hash,
+                sender_public_key=sender_public_key,
                 cipher_mac=cipher_mac,
-                ciphertext=ciphertext
+                ciphertext=ciphertext,
+                ciphertext_length=len(payload) - 35
             )
 
             if options.get('include_segments'):
@@ -128,16 +124,14 @@ class RequestPayloadDecoder:
 
             return result
         except Exception as error:
-            return RequestPayload(
-                payload_type=PayloadType.Request,
+            return AnonRequestPayload(
+                payload_type=PayloadType.AnonRequest,
                 version=PayloadVersion.Version1,
                 is_valid=False,
                 errors=[str(error)],
-                timestamp=0,
-                request_type=RequestType.GetStats,
-                request_data='',
                 destination_hash='',
-                source_hash='',
+                sender_public_key='',
                 cipher_mac='',
-                ciphertext=''
+                ciphertext='',
+                ciphertext_length=0
             )
