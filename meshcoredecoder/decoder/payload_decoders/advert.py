@@ -152,9 +152,23 @@ class AdvertPayloadDecoder:
 
                 offset += 8
 
-            # Skip feature fields for now (HasFeature1, HasFeature2)
-            if flags & AdvertFlags.HasFeature1.value:
+            # Feature1 data (battery voltage in mV) - if HasFeature1 flag is set
+            if flags & AdvertFlags.HasFeature1.value and len(payload) >= offset + 2:
+                battery_voltage_mv = AdvertPayloadDecoder._read_uint16_le(payload, offset)
+                advert.app_data['battery_voltage_v'] = battery_voltage_mv/1000
+
+                if options.get('include_segments'):
+                    segments.append(PayloadSegment(
+                        name='Battery Voltage (feat1)',
+                        description=f'Battery voltage: {battery_voltage_v} V',
+                        start_byte=segment_offset + offset,
+                        end_byte=segment_offset + offset + 1,
+                        value=bytes_to_hex(payload[offset:offset + 2])
+                    ))
+
                 offset += 2
+
+            # Skip feature2 field for now (HasFeature2)
             if flags & AdvertFlags.HasFeature2.value:
                 offset += 2
 
@@ -203,6 +217,11 @@ class AdvertPayloadDecoder:
             return DeviceRole.Sensor
         else:
             return DeviceRole.ChatNode
+
+    @staticmethod
+    def _read_uint16_le(buffer: bytes, offset: int) -> int:
+        """Read a 16-bit unsigned integer in little-endian format"""
+        return buffer[offset] | (buffer[offset + 1] << 8)
 
     @staticmethod
     def _read_uint32_le(buffer: bytes, offset: int) -> int:

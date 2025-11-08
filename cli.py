@@ -64,6 +64,9 @@ def show_payload_details(payload):
             loc = advert.app_data['location']
             print(f'{bold("Location:")} {loc["latitude"]}, {loc["longitude"]}')
 
+        if advert.app_data.get('battery_voltage_v') is not None:
+            print(f'{bold("Battery Voltage:")} {advert.app_data["battery_voltage_v"]} V')
+
         print(f'{bold("Timestamp:")} {datetime.fromtimestamp(advert.timestamp).isoformat()}')
 
         # Show signature verification status
