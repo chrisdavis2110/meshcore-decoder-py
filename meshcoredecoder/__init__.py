@@ -5,4 +5,4 @@ from .decoder.packet_decoder import MeshCorePacketDecoder
 MeshCoreDecoder = MeshCorePacketDecoder
 
 __all__ = ['MeshCoreDecoder', 'MeshCorePacketDecoder']
-__version__ = "0.1.0"
+__version__ = "0.1.1"
