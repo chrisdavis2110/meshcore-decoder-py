@@ -160,7 +160,7 @@ class AdvertPayloadDecoder:
                 if options.get('include_segments'):
                     segments.append(PayloadSegment(
                         name='Battery Voltage (feat1)',
-                        description=f'Battery voltage: {battery_voltage} V',
+                        description=f'Battery voltage: {battery_voltage_mv/1000} V',
                         start_byte=segment_offset + offset,
                         end_byte=segment_offset + offset + 1,
                         value=bytes_to_hex(payload[offset:offset + 2])
