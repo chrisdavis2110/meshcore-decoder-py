@@ -77,8 +77,8 @@ class AdvertPayload(BasePayload):
             result['appData']['location'] = self.app_data['location']
 
         # Add battery voltage if present
-        if self.app_data.get('battery_voltage_v') is not None:
-            result['appData']['batteryVoltageV'] = self.app_data['battery_voltage_v']
+        if self.app_data.get('battery_voltage') is not None:
+            result['appData']['batteryVoltage'] = self.app_data['battery_voltage']
 
         # Add name if present
         if self.app_data.get('name'):

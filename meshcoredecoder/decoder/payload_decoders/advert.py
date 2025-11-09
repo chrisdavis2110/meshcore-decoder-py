@@ -155,12 +155,12 @@ class AdvertPayloadDecoder:
             # Feature1 data (battery voltage in mV) - if HasFeature1 flag is set
             if flags & AdvertFlags.HasFeature1.value and len(payload) >= offset + 2:
                 battery_voltage_mv = AdvertPayloadDecoder._read_uint16_le(payload, offset)
-                advert.app_data['battery_voltage_v'] = battery_voltage_mv/1000
+                advert.app_data['battery_voltage'] = battery_voltage_mv/1000
 
                 if options.get('include_segments'):
                     segments.append(PayloadSegment(
                         name='Battery Voltage (feat1)',
-                        description=f'Battery voltage: {battery_voltage_v} V',
+                        description=f'Battery voltage: {battery_voltage} V',
                         start_byte=segment_offset + offset,
                         end_byte=segment_offset + offset + 1,
                         value=bytes_to_hex(payload[offset:offset + 2])
