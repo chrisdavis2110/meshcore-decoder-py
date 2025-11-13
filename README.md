@@ -1,5 +1,5 @@
 # MeshCore Decoder - Python Port
-[![PyPI](https://img.shields.io/pypi/v/meshcoredecoder?color=blue)](https://pypi.org/project/meshcoredecoder/) ![PyPI versions](https://img.shields.io/pypi/pyversions/meshcoredecoder)
+[![PyPI](https://img.shields.io/pypi/v/meshcoredecoder?color=blue)](https://pypi.org/project/meshcoredecoder/)
 
 
 A Python library for decoding MeshCore mesh networking packets with full cryptographic support. Complete Python implementation of the [MeshCore Packet Decoder](https://github.com/michaelhart/meshcore-decoder) by [Michael Hart](https://github.com/michaelhart).
