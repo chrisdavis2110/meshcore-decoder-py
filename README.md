@@ -166,6 +166,32 @@ async def verify_packet():
 asyncio.run(verify_packet())
 ```
 
+## Trace Packets and SNR Analysis
+
+Trace packets include Signal-to-Noise Ratio (SNR) values collected at each hop along the path. The library automatically extracts and correlates SNR values with path hashes:
+
+```python
+from meshcoredecoder import MeshCoreDecoder
+from meshcoredecoder.types.enums import PayloadType
+
+trace_hex_data = '...'  # Your Trace packet hex
+packet = MeshCoreDecoder.decode(trace_hex_data)
+
+if packet.payload_type == PayloadType.Trace and packet.payload.get('decoded'):
+    trace = packet.payload['decoded']
+
+    # Get path with SNR per hop
+    path_with_snr = trace.get_path_with_snr()
+    for hop_info in path_with_snr:
+        print(f"Hop {hop_info['hop']}: Node {hop_info['nodeHash']} → SNR: {hop_info['snr']:.1f}dB")
+
+    # Or access SNR values directly
+    if trace.snr_values:
+        print(f"SNR values: {trace.snr_values}")
+```
+
+**Note:** SNR values are stored in the packet's path field as signed int8 values multiplied by 4, and are automatically converted to dB by the decoder. Each SNR value corresponds to the signal quality at that hop in the path.
+
 ## Packet Structure Analysis
 
 For detailed packet analysis and debugging, use `analyze_structure()` to get byte-level breakdowns:

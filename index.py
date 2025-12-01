@@ -6,7 +6,7 @@ MIT License
 Main entry point for the MeshCore decoder Python port
 """
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 # Main decoder
 from src.decoder.packet_decoder import MeshCorePacketDecoder

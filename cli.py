@@ -98,9 +98,24 @@ def show_payload_details(payload):
         trace = payload
         print(f'{bold("Trace Tag:")} {trace.trace_tag}')
         print(f'{bold("Auth Code:")} {trace.auth_code}')
+
+        # Show path with SNR per hop
+        if trace.path_hashes and len(trace.path_hashes) > 0:
+            print(f'\n{bold("Path (with SNR per hop):")}')
+            path_with_snr = trace.get_path_with_snr()
+            for hop_info in path_with_snr:
+                hop_num = hop_info.get('hop', 0)
+                node_hash = hop_info.get('nodeHash', '')
+                snr = hop_info.get('snr')
+                if snr is not None:
+                    print(f'  Hop {hop_num}: Node {node_hash} → SNR: {snr:.1f}dB')
+                else:
+                    print(f'  Hop {hop_num}: Node {node_hash} → SNR: N/A')
+
+        # Also show SNR values as a list for backwards compatibility
         if trace.snr_values and len(trace.snr_values) > 0:
             snr_str = ', '.join([f'{snr:.1f}dB' for snr in trace.snr_values])
-            print(f'{bold("SNR Values:")} {snr_str}')
+            print(f'\n{bold("SNR Values (all):")} {snr_str}')
 
     else:
         print(f'{bold("Type:")} {get_payload_type_name(payload_type)}')

@@ -105,6 +105,41 @@ class TracePayload(BasePayload):
         self.path_hashes = path_hashes
         self.snr_values = snr_values or []
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization"""
+        result = super().to_dict()
+        result.update({
+            'traceTag': self.trace_tag,
+            'authCode': self.auth_code,
+            'flags': self.flags,
+            'pathHashes': self.path_hashes
+        })
+
+        # Include SNR values if available
+        if self.snr_values:
+            result['snrValues'] = self.snr_values
+
+            # Create path with SNR per hop for easier analysis
+            path_with_snr = []
+            for i, path_hash in enumerate(self.path_hashes):
+                hop_info = {'nodeHash': path_hash}
+                if i < len(self.snr_values):
+                    hop_info['snr'] = self.snr_values[i]
+                path_with_snr.append(hop_info)
+            result['path'] = path_with_snr
+
+        return result
+
+    def get_path_with_snr(self) -> List[Dict[str, Any]]:
+        """Get path with SNR values per hop"""
+        path_with_snr = []
+        for i, path_hash in enumerate(self.path_hashes):
+            hop_info = {'nodeHash': path_hash, 'hop': i + 1}
+            if i < len(self.snr_values):
+                hop_info['snr'] = self.snr_values[i]
+            path_with_snr.append(hop_info)
+        return path_with_snr
+
 
 class GroupTextPayload(BasePayload):
     """Group text message payload"""
