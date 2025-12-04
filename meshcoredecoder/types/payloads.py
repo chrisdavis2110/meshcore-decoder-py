@@ -255,6 +255,30 @@ class PathPayload(BasePayload):
         self.extra_data = extra_data
 
 
+class NeighborEntry:
+    """Neighbor table entry with SNR data"""
+    def __init__(
+        self,
+        node_id: str,  # 32-byte Ed25519 public key (hex)
+        advert_timestamp: int,  # Unix timestamp from advertisement
+        heard_timestamp: int,  # Local time when advertisement was received
+        snr: float  # SNR in dB (converted from int8_t * 4)
+    ):
+        self.node_id = node_id
+        self.advert_timestamp = advert_timestamp
+        self.heard_timestamp = heard_timestamp
+        self.snr = snr
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization"""
+        return {
+            'nodeId': self.node_id,
+            'advertTimestamp': self.advert_timestamp,
+            'heardTimestamp': self.heard_timestamp,
+            'snr': self.snr
+        }
+
+
 class ResponsePayload(BasePayload):
     """Response payload"""
     def __init__(
@@ -265,6 +289,8 @@ class ResponsePayload(BasePayload):
         ciphertext: str,
         ciphertext_length: int,
         decrypted: Optional[Dict[str, Any]] = None,
+        tag: Optional[int] = None,
+        neighbors: Optional[List[NeighborEntry]] = None,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -274,6 +300,31 @@ class ResponsePayload(BasePayload):
         self.ciphertext = ciphertext
         self.ciphertext_length = ciphertext_length
         self.decrypted = decrypted
+        self.tag = tag  # Response tag (4 bytes, little-endian)
+        self.neighbors = neighbors or []  # Neighbor table entries (for GetStats responses)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization"""
+        result = super().to_dict()
+        result.update({
+            'destinationHash': self.destination_hash,
+            'sourceHash': self.source_hash,
+            'cipherMac': self.cipher_mac,
+            'ciphertext': self.ciphertext,
+            'ciphertextLength': self.ciphertext_length
+        })
+
+        if self.tag is not None:
+            result['tag'] = self.tag
+
+        if self.decrypted:
+            result['decrypted'] = self.decrypted
+
+        if self.neighbors:
+            result['neighbors'] = [neighbor.to_dict() for neighbor in self.neighbors]
+            result['neighborCount'] = len(self.neighbors)
+
+        return result
 
 
 # Union type for all payload types

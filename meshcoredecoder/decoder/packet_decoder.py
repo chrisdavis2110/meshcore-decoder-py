@@ -254,7 +254,12 @@ class MeshCorePacketDecoder:
                 if result and hasattr(result, 'segments') and result.segments:
                     payload_segments.extend(result.segments)
             elif payload_type == PayloadType.Response:
-                result = ResponsePayloadDecoder.decode(payload_bytes, {'include_segments': include_structure, 'segment_offset': 0})
+                # Pass DecryptionOptions if available, similar to GroupText
+                decoder_options = options if options else DecryptionOptions()
+                # Add segment info to options object
+                decoder_options.include_segments = include_structure
+                decoder_options.segment_offset = 0
+                result = ResponsePayloadDecoder.decode(payload_bytes, decoder_options)
                 decoded_payload = result
                 if result and hasattr(result, 'segments') and result.segments:
                     payload_segments.extend(result.segments)
@@ -271,7 +276,9 @@ class MeshCorePacketDecoder:
             elif payload_type == PayloadType.Path:
                 decoded_payload = PathPayloadDecoder.decode(payload_bytes)
             elif payload_type == PayloadType.TextMessage:
-                decoded_payload = TextMessagePayloadDecoder.decode(payload_bytes)
+                # Pass DecryptionOptions if available, similar to Response
+                decoder_options = options if options else DecryptionOptions()
+                decoded_payload = TextMessagePayloadDecoder.decode(payload_bytes, decoder_options)
 
             # If no segments were generated and we need structure, show basic payload info
             if include_structure and len(payload_segments) == 0 and len(bytes_data) > offset:

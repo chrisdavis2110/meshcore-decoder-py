@@ -16,7 +16,7 @@ all_packages = find_packages()
 
 setup(
     name="meshcoredecoder",
-    version="0.1.4",
+    version="0.1.6",
     author="Chris Davis",
     author_email="chrisdavis2110@gmail.com",
     description="Complete Python implementation of the MeshCore Packet Decoder",
