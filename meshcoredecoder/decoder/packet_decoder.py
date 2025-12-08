@@ -18,6 +18,7 @@ from .payload_decoders.trace import TracePayloadDecoder
 from .payload_decoders.path import PathPayloadDecoder
 from .payload_decoders.advert import AdvertPayloadDecoder
 from .payload_decoders.group_text import GroupTextPayloadDecoder
+from .payload_decoders.group_data import GroupDataPayloadDecoder
 from .payload_decoders.request import RequestPayloadDecoder
 from .payload_decoders.response import ResponsePayloadDecoder
 from .payload_decoders.anon_request import AnonRequestPayloadDecoder
@@ -248,18 +249,35 @@ class MeshCorePacketDecoder:
                 decoded_payload = result
                 if result and hasattr(result, 'segments') and result.segments:
                     payload_segments.extend(result.segments)
+            elif payload_type == PayloadType.GroupData:
+                decoder_options = options.__dict__ if options else {}
+                decoder_options['include_segments'] = include_structure
+                decoder_options['segment_offset'] = 0
+                result = GroupDataPayloadDecoder.decode(payload_bytes, options)
+                decoded_payload = result
+                if result and hasattr(result, 'segments') and result.segments:
+                    payload_segments.extend(result.segments)
             elif payload_type == PayloadType.Request:
-                result = RequestPayloadDecoder.decode(payload_bytes, {'include_segments': include_structure, 'segment_offset': 0})
+                decoder_options = options.__dict__ if options else {}
+                decoder_options['include_segments'] = include_structure
+                decoder_options['segment_offset'] = 0
+                result = RequestPayloadDecoder.decode(payload_bytes, options if options else decoder_options)
                 decoded_payload = result
                 if result and hasattr(result, 'segments') and result.segments:
                     payload_segments.extend(result.segments)
             elif payload_type == PayloadType.Response:
-                result = ResponsePayloadDecoder.decode(payload_bytes, {'include_segments': include_structure, 'segment_offset': 0})
+                decoder_options = options.__dict__ if options else {}
+                decoder_options['include_segments'] = include_structure
+                decoder_options['segment_offset'] = 0
+                result = ResponsePayloadDecoder.decode(payload_bytes, options if options else decoder_options)
                 decoded_payload = result
                 if result and hasattr(result, 'segments') and result.segments:
                     payload_segments.extend(result.segments)
             elif payload_type == PayloadType.AnonRequest:
-                result = AnonRequestPayloadDecoder.decode(payload_bytes, {'include_segments': include_structure, 'segment_offset': 0})
+                decoder_options = options.__dict__ if options else {}
+                decoder_options['include_segments'] = include_structure
+                decoder_options['segment_offset'] = 0
+                result = AnonRequestPayloadDecoder.decode(payload_bytes, options if options else decoder_options)
                 decoded_payload = result
                 if result and hasattr(result, 'segments') and result.segments:
                     payload_segments.extend(result.segments)
@@ -269,9 +287,15 @@ class MeshCorePacketDecoder:
                 if result and hasattr(result, 'segments') and result.segments:
                     payload_segments.extend(result.segments)
             elif payload_type == PayloadType.Path:
-                decoded_payload = PathPayloadDecoder.decode(payload_bytes)
+                decoder_options = options.__dict__ if options else {}
+                decoder_options['include_segments'] = include_structure
+                decoder_options['segment_offset'] = 0
+                decoded_payload = PathPayloadDecoder.decode(payload_bytes, options if options else decoder_options)
             elif payload_type == PayloadType.TextMessage:
-                decoded_payload = TextMessagePayloadDecoder.decode(payload_bytes)
+                decoder_options = options.__dict__ if options else {}
+                decoder_options['include_segments'] = include_structure
+                decoder_options['segment_offset'] = 0
+                decoded_payload = TextMessagePayloadDecoder.decode(payload_bytes, options if options else decoder_options)
 
             # If no segments were generated and we need structure, show basic payload info
             if include_structure and len(payload_segments) == 0 and len(bytes_data) > offset:

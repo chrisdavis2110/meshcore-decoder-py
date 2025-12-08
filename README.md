@@ -39,7 +39,7 @@ from meshcoredecoder.utils.enum_names import get_route_type_name, get_payload_ty
 import json
 
 # Decode a MeshCore packet
-hex_data = '11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172'
+hex_data = '11007E76...'
 packet = MeshCoreDecoder.decode(hex_data)
 
 print(f"Route Type: {get_route_type_name(packet.route_type)}")
@@ -63,7 +63,7 @@ Here's what a complete decoded packet looks like:
 from meshcoredecoder import MeshCoreDecoder
 import json
 
-hex_data = '11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172'
+hex_data = '11007E766...'
 
 packet = MeshCoreDecoder.decode(hex_data)
 
@@ -174,7 +174,7 @@ For detailed packet analysis and debugging, use `analyze_structure()` to get byt
 from meshcoredecoder import MeshCoreDecoder
 
 print('=== Packet Breakdown ===')
-hex_data = '11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172'
+hex_data = '11007E7662...'
 
 print(f"Packet length: {len(hex_data)}")
 print(f"Expected bytes: {len(hex_data) / 2}")
@@ -199,7 +199,7 @@ Expected bytes: 134
 Main segments:
 1. Header (bytes 0-0): 0x11
 2. Path Length (bytes 1-1): 0x00
-3. Payload (bytes 2-133): 7E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172
+3. Payload (bytes 2-133): 7E7662676F7F...
 
 Payload segments:
 1. Public Key (bytes 0-31): 7E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C9400
@@ -232,11 +232,11 @@ The library includes MeshCore-compatible Ed25519 key derivation using the exact 
 from meshcoredecoder.crypto import derive_public_key, validate_key_pair
 
 # Derive public key from MeshCore private key (64-byte format)
-private_key = '18469d6140447f77de13cd8d761e605431f52269fbff43b0925752ed9e6745435dc6a86d2568af8b70d3365db3f88234760c8ecc645ce469829bc45b65f1d5d5'
+private_key = '18469d614044...'
 
 public_key = derive_public_key(private_key)
 print('Derived Public Key:', public_key)
-# Output: 4852B69364572B52EFA1B6BB3E6D0ABED4F389A1CBFBB60A9BBA2CCE649CAF0E
+# Output: 4852B693645...
 
 # Validate a key pair
 is_valid = validate_key_pair(private_key, public_key)
@@ -249,22 +249,286 @@ For quick analysis from the terminal, use the CLI:
 
 ```bash
 # Analyze a packet
-python cli.py decode 11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172
+python cli.py decode 11007E7662676...
 
 # With decryption (provide channel secrets)
-python cli.py decode 150011C3C1354D619BAE9590E4D177DB7EEAF982F5BDCF78005D75157D9535FA90178F785D --key 8b3387e9c5cdea6ac9e5edbaa115cd72
+python cli.py decode 150011C3C... --key 8b3387e9c...
 
 # Show detailed structure analysis
-python cli.py decode --structure 11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172
+python cli.py decode --structure 11007E7662676F7...
 
 # JSON output
-python cli.py decode --json 11007E7662676F7F0850A8A355BAAFBFC1EB7B4174C340442D7D7161C9474A2C94006CE7CF682E58408DD8FCC51906ECA98EBF94A037886BDADE7ECD09FD92B839491DF3809C9454F5286D1D3370AC31A34593D569E9A042A3B41FD331DFFB7E18599CE1E60992A076D50238C5B8F85757375354522F50756765744D65736820436F75676172
+python cli.py decode --json 11007E7662676F7F085...
 
 # Derive public key from MeshCore private key
-python cli.py derive-key 18469d6140447f77de13cd8d761e605431f52269fbff43b0925752ed9e6745435dc6a86d2568af8b70d3365db3f88234760c8ecc645ce469829bc45b65f1d5d5
+python cli.py derive-key 18469d6140447f77...
 
 # Validate key pair
-python cli.py validate-key 18469d6140447f77de13cd8d761e605431f52269fbff43b0925752ed9e6745435dc6a86d2568af8b70d3365db3f88234760c8ecc645ce469829bc45b65f1d5d5 4852b69364572b52efa1b6bb3e6d0abed4f389a1cbfbb60a9bba2cce649caf0e
+python cli.py validate-key 18469d6140447f77de13... 4852b69...
+```
+
+## Packet Type Examples
+
+Here are examples of how to decode all supported packet types using the Python API in your own scripts. These examples use real test packets from the test suite.
+
+### Setup: Create Key Store
+
+First, set up your keys for decryption:
+
+```python
+from meshcoredecoder import MeshCoreDecoder
+from meshcoredecoder.crypto import MeshCoreKeyStore
+from meshcoredecoder.types.crypto import DecryptionOptions
+from meshcoredecoder.types.enums import PayloadType
+from datetime import datetime
+
+# Test keys (truncated for readability)
+NODE_KEY = "2e5c4e32...:1010fe34..."
+PEER_KEY = "969605c0..."
+CHANNEL_KEY = "9cd8fcf2..."
+
+# Create key store for encrypted packets
+key_store = MeshCoreKeyStore()
+key_store.add_node_key(
+    "2e5c4e32...",
+    "1010fe34..."
+)
+key_store.add_peer_key("969605c0...")
+key_store.add_channel_secret("9cd8fcf2...")
+
+decryption_options = DecryptionOptions(key_store=key_store)
+```
+
+### Request/Response Packets
+
+#### GET_STATS Request
+```python
+packet_hex = "0200962E8AD0F2E571B007FF696A06BFEE285ADB5394"  # ... (truncated)
+packet = MeshCoreDecoder.decode(packet_hex, decryption_options)
+
+if packet.payload_type == PayloadType.Request:
+    request = packet.payload['decoded']
+    print(f"Request Type: {request.request_type}")
+    print(f"Timestamp: {datetime.fromtimestamp(request.timestamp)}")
+```
+
+#### GET_STATS Response
+```python
+packet_hex = "06002E963EB..."  # ... (truncated)
+packet = MeshCoreDecoder.decode(packet_hex, decryption_options)
+
+if packet.payload_type == PayloadType.Response:
+    response = packet.payload['decoded']
+    if response.decrypted and response.decrypted.get('content', {}).get('type') == 'stats':
+        print("Response Type: Stats")
+        print(f"Tag: {response.decrypted['tag']}")
+        # Stats data is in response.decrypted['content']['stats_data']
+```
+
+#### GET_NEIGHBOURS Request
+```python
+packet_hex = "0200962E..."  # ... (truncated)
+packet = MeshCoreDecoder.decode(packet_hex, decryption_options)
+
+if packet.payload_type == PayloadType.Request:
+    request = packet.payload['decoded']
+    if request.request_type == 0x06:  # GetNeighbours
+        print(f"Request Type: GetNeighbours")
+        print(f"Count: {request.request_data.get('count')}")
+        print(f"Offset: {request.request_data.get('offset')}")
+```
+
+#### GET_NEIGHBOURS Response
+```python
+packet_hex = "06002E960D..."  # ... (truncated)
+packet = MeshCoreDecoder.decode(packet_hex, decryption_options)
+
+if packet.payload_type == PayloadType.Response:
+    response = packet.payload['decoded']
+    if response.decrypted:
+        content = response.decrypted.get('content', {})
+        if content.get('type') == 'neighbours':
+            print(f"Total Neighbours: {content.get('neighbours_count')}")
+            print(f"Results in Response: {content.get('results_count')}")
+            for i, neighbor in enumerate(content.get('neighbors', []), 1):
+                print(f"  {i}. {neighbor.get('pubkey_prefix')} - SNR: {neighbor.get('snr')/4.0:.2f} dB")
+```
+
+#### GET_TELEMETRY_DATA Request
+```python
+packet_hex = "020096..."  # ... (truncated)
+packet = MeshCoreDecoder.decode(packet_hex, decryption_options)
+
+if packet.payload_type == PayloadType.Request:
+    request = packet.payload['decoded']
+    if request.request_type == 0x03:  # GetTelemetryData
+        print(f"Request Type: GetTelemetryData")
+        print(f"Permission Mask: {request.request_data.get('permission_mask_hex')}")
+```
+
+#### GET_TELEMETRY_DATA Response
+```python
+packet_hex = "06002E9..."  # ... (truncated)
+packet = MeshCoreDecoder.decode(packet_hex, decryption_options)
+
+if packet.payload_type == PayloadType.Response:
+    response = packet.payload['decoded']
+    if response.decrypted:
+        content = response.decrypted.get('content', {})
+        if content.get('type') == 'telemetry':
+            print("Response Type: Telemetry")
+            print(f"Telemetry Data: {content.get('telemetry_data')}")
+            # Parse LPP format telemetry data
+```
+
+### Unencrypted Packets
+
+#### Advert
+```python
+packet_hex = "1107D978C2..."  # ... (truncated)
+packet = MeshCoreDecoder.decode(packet_hex)
+
+if packet.payload_type == PayloadType.Advert:
+    advert = packet.payload['decoded']
+    print(f"Device Name: {advert.app_data.get('name')}")
+    print(f"Device Role: {advert.app_data.get('device_role')}")
+    if advert.app_data.get('location'):
+        loc = advert.app_data['location']
+        print(f"Location: {loc['latitude']}, {loc['longitude']}")
+    print(f"Timestamp: {datetime.fromtimestamp(advert.timestamp)}")
+```
+
+#### ACK
+```python
+packet_hex = "0D055..."
+packet = MeshCoreDecoder.decode(packet_hex)
+
+if packet.payload_type == PayloadType.Ack:
+    ack = packet.payload['decoded']
+    print(f"Checksum: 0x{ack.checksum:08X}")
+```
+
+#### Trace
+```python
+packet_hex = "260..."
+packet = MeshCoreDecoder.decode(packet_hex)
+
+if packet.payload_type == PayloadType.Trace:
+    trace = packet.payload['decoded']
+    print(f"Trace Tag: 0x{trace.trace_tag:08X}")
+    print(f"Path Hashes: {' → '.join(trace.path_hashes)}")
+    if trace.snr_values:
+        print("SNR Values:")
+        for i, snr in enumerate(trace.snr_values, 1):
+            print(f"  Hop {i}: {snr:.1f} dB")
+```
+
+### Encrypted Packets (Require Keys)
+
+#### GroupText
+```python
+packet_hex = "15062B0..."  # ... (truncated)
+packet = MeshCoreDecoder.decode(packet_hex, decryption_options)
+
+if packet.payload_type == PayloadType.GroupText:
+    group_text = packet.payload['decoded']
+    if group_text.decrypted:
+        print(f"Sender: {group_text.decrypted.get('sender')}")
+        print(f"Message: {group_text.decrypted.get('message')}")
+        print(f"Timestamp: {datetime.fromtimestamp(group_text.decrypted.get('timestamp', 0))}")
+    else:
+        print("Message encrypted (no key available)")
+```
+
+#### TextMessage
+```python
+packet_hex = "0A002..."  # ... (truncated)
+packet = MeshCoreDecoder.decode(packet_hex, decryption_options)
+
+if packet.payload_type == PayloadType.TextMessage:
+    text_msg = packet.payload['decoded']
+    if text_msg.decrypted:
+        print(f"Message: {text_msg.decrypted.get('message')}")
+        print(f"Text Type: {text_msg.decrypted.get('text_type')}")
+        print(f"Timestamp: {datetime.fromtimestamp(text_msg.decrypted.get('timestamp', 0))}")
+```
+
+#### Path
+```python
+packet_hex = "2105D..."
+packet = MeshCoreDecoder.decode(packet_hex, decryption_options)
+
+if packet.payload_type == PayloadType.Path:
+    path = packet.payload['decoded']
+    print(f"Destination Hash: {path.destination_hash}")
+    print(f"Source Hash: {path.source_hash}")
+    if path.decrypted:
+        print(f"Decrypted Path Data: {path.decrypted}")
+    else:
+        print("Path encrypted (decryption may have failed)")
+```
+
+#### AnonRequest (Login)
+```python
+packet_hex = "1E013..."  # ... (truncated)
+packet = MeshCoreDecoder.decode(packet_hex, decryption_options)
+
+if packet.payload_type == PayloadType.AnonRequest:
+    anon_req = packet.payload['decoded']
+    print(f"Sender Public Key: {anon_req.sender_public_key}")
+    print(f"Destination Hash: {anon_req.destination_hash}")
+    if anon_req.decrypted:
+        print(f"Decrypted Request Data: {anon_req.decrypted}")
+```
+
+#### Login Response
+```python
+packet_hex = "05002..."
+packet = MeshCoreDecoder.decode(packet_hex, decryption_options)
+
+if packet.payload_type == PayloadType.Response:
+    response = packet.payload['decoded']
+    if response.decrypted:
+        content = response.decrypted.get('content', {})
+        if content.get('type') == 'login_response':
+            print(f"Response Code: 0x{content.get('response_code'):02x}")
+            print(f"Is Admin: {bool(content.get('is_admin'))}")
+            print(f"Permissions: 0x{content.get('permissions'):02x}")
+            print(f"Firmware Version: {content.get('firmware_version')}")
+```
+
+### Complete Example Script
+
+Here's a complete example that decodes multiple packet types:
+
+```python
+from meshcoredecoder import MeshCoreDecoder
+from meshcoredecoder.crypto import MeshCoreKeyStore
+from meshcoredecoder.types.crypto import DecryptionOptions
+from meshcoredecoder.types.enums import PayloadType
+
+# Setup keys (truncated for readability)
+key_store = MeshCoreKeyStore()
+key_store.add_node_key("2e5c4e32...", "1010fe34...")
+key_store.add_peer_key("969605c0...")
+key_store.add_channel_secret("9cd8fcf2...")
+
+options = DecryptionOptions(key_store=key_store)
+
+# Example packets (hex strings truncated for readability)
+packets = [
+    ("Advert", "1107D978...", None),
+    ("GroupText", "15062B...", options),
+    ("GET_STATS Response", "06002E96...", options),
+]
+
+for name, hex_data, opts in packets:
+    print(f"\n=== {name} ===")
+    packet = MeshCoreDecoder.decode(hex_data, opts)
+    print(f"Route Type: {packet.route_type}")
+    print(f"Payload Type: {packet.payload_type}")
+    print(f"Message Hash: {packet.message_hash}")
+    # Process based on payload type...
 ```
 
 
