@@ -49,11 +49,20 @@ def print_formatted_packet(packet, keys: Optional[List[str]] = None):
 
 
 def show_payload_details(payload):
-    """Show details for specific payload types"""
+    """Show details for all payload types"""
     from datetime import datetime
 
     payload_type = payload.type
+    print(f'{bold("Payload Type:")} {get_payload_type_name(payload_type)}')
+    print(f'{bold("Payload Version:")} {payload.version.value}')
+    print(f'{bold("Valid:")} {"✅" if payload.is_valid else "❌"}')
 
+    if payload.errors:
+        print(f'{bold("Errors:")}')
+        for error in payload.errors:
+            print(f'  ❌ {error}')
+
+    # Show payload-specific fields
     if payload_type == PayloadType.Advert:
         advert = payload
         print(f'{bold("Public Key:")} {advert.public_key}')
@@ -70,17 +79,28 @@ def show_payload_details(payload):
             print(f'{bold("Battery Voltage:")} {advert.app_data["battery_voltage"]} V')
 
         print(f'{bold("Timestamp:")} {datetime.fromtimestamp(advert.timestamp).isoformat()}')
+        print(f'{bold("Signature:")} {advert.signature}')
 
         # Show signature verification status
         if advert.signature_valid is not None:
             if advert.signature_valid:
-                print(f'{bold("Signature:")} ✅ Valid Ed25519 signature')
+                print(f'{bold("Signature Status:")} ✅ Valid Ed25519 signature')
             else:
-                print(f'{bold("Signature:")} ❌ Invalid Ed25519 signature')
+                print(f'{bold("Signature Status:")} ❌ Invalid Ed25519 signature')
                 if advert.signature_error:
-                    print(f'{bold("Error:")} {advert.signature_error}')
+                    print(f'{bold("Signature Error:")} {advert.signature_error}')
         else:
-            print(f'{bold("Signature:")} ⚠️ Not verified (use --verify flag)')
+            print(f'{bold("Signature Status:")} ⚠️ Not verified (use --verify flag)')
+
+        print(f'\n{bold("App Data:")}')
+        print(f'  {bold("Device Role:")} {get_device_role_name(advert.app_data["device_role"])}')
+        if advert.app_data.get('name'):
+            print(f'  {bold("Device Name:")} {advert.app_data["name"]}')
+        if advert.app_data.get('location'):
+            loc = advert.app_data['location']
+            print(f'  {bold("Location:")} {loc["latitude"]}, {loc["longitude"]}')
+        if advert.app_data.get('battery_voltage') is not None:
+            print(f'  {bold("Battery Voltage:")} {advert.app_data["battery_voltage"]} V')
 
     elif payload_type == PayloadType.GroupText:
         group_text = payload
@@ -653,8 +673,28 @@ def show_payload_details(payload):
                 print(f'  Max: {max_snr:.1f} dB')
 
     else:
-        print(f'{bold("Type:")} {get_payload_type_name(payload_type)}')
-        print(f'{bold("Valid:")} {"✅" if payload.is_valid else "❌"}')
+        # Generic fallback for any other payload types
+        print(f'\n{bold("=== Payload Data ===")}')
+        # Show all attributes of the payload object
+        attrs = [attr for attr in dir(payload) if not attr.startswith('_') and not callable(getattr(payload, attr, None))]
+        for attr in attrs:
+            try:
+                value = getattr(payload, attr)
+                if value is not None and attr not in ['type', 'version', 'is_valid', 'errors']:
+                    # Format the value nicely
+                    if isinstance(value, list) and len(value) > 0:
+                        if len(value) <= 5:
+                            print(f'{bold(attr + ":")} {value}')
+                        else:
+                            print(f'{bold(attr + ":")} [{len(value)} items] {value[:3]} ... {value[-2:]}')
+                    elif isinstance(value, dict):
+                        print(f'{bold(attr + ":")} {len(value)} keys')
+                    elif isinstance(value, str) and len(value) > 64:
+                        print(f'{bold(attr + ":")} {value[:64]}...')
+                    else:
+                        print(f'{bold(attr + ":")} {value}')
+            except Exception:
+                pass
 
 
 def bold(text: str) -> str:

@@ -18,7 +18,7 @@ class TextMessagePayloadDecoder:
     @staticmethod
     def decode(
         payload: bytes,
-        options: Optional[Dict[str, Any]] = None
+        options: Optional[DecryptionOptions] = None
     ) -> Optional[TextMessagePayload]:
         """Decode a TextMessage payload with optional decryption"""
         if options is None:
@@ -127,7 +127,8 @@ class TextMessagePayloadDecoder:
                 source_hash=source_hash,
                 cipher_mac=cipher_mac,
                 ciphertext=ciphertext,
-                ciphertext_length=len(payload) - 4
+                ciphertext_length=len(payload) - 4,
+                decrypted=decrypted_data
             )
 
             # Attempt decryption if key store is provided

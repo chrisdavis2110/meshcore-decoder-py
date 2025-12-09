@@ -105,6 +105,41 @@ class TracePayload(BasePayload):
         self.path_hashes = path_hashes
         self.snr_values = snr_values or []
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization"""
+        result = super().to_dict()
+        result.update({
+            'traceTag': self.trace_tag,
+            'authCode': self.auth_code,
+            'flags': self.flags,
+            'pathHashes': self.path_hashes
+        })
+
+        # Include SNR values if available
+        if self.snr_values:
+            result['snrValues'] = self.snr_values
+
+            # Create path with SNR per hop for easier analysis
+            path_with_snr = []
+            for i, path_hash in enumerate(self.path_hashes):
+                hop_info = {'nodeHash': path_hash}
+                if i < len(self.snr_values):
+                    hop_info['snr'] = self.snr_values[i]
+                path_with_snr.append(hop_info)
+            result['path'] = path_with_snr
+
+        return result
+
+    def get_path_with_snr(self) -> List[Dict[str, Any]]:
+        """Get path with SNR values per hop"""
+        path_with_snr = []
+        for i, path_hash in enumerate(self.path_hashes):
+            hop_info = {'nodeHash': path_hash, 'hop': i + 1}
+            if i < len(self.snr_values):
+                hop_info['snr'] = self.snr_values[i]
+            path_with_snr.append(hop_info)
+        return path_with_snr
+
 
 class GroupTextPayload(BasePayload):
     """Group text message payload"""
@@ -267,6 +302,30 @@ class PathPayload(BasePayload):
         self.decrypted = decrypted
 
 
+class NeighborEntry:
+    """Neighbor table entry with SNR data"""
+    def __init__(
+        self,
+        node_id: str,  # 32-byte Ed25519 public key (hex)
+        advert_timestamp: int,  # Unix timestamp from advertisement
+        heard_timestamp: int,  # Local time when advertisement was received
+        snr: float  # SNR in dB (converted from int8_t * 4)
+    ):
+        self.node_id = node_id
+        self.advert_timestamp = advert_timestamp
+        self.heard_timestamp = heard_timestamp
+        self.snr = snr
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization"""
+        return {
+            'nodeId': self.node_id,
+            'advertTimestamp': self.advert_timestamp,
+            'heardTimestamp': self.heard_timestamp,
+            'snr': self.snr
+        }
+
+
 class ResponsePayload(BasePayload):
     """Response payload"""
     def __init__(
@@ -277,6 +336,8 @@ class ResponsePayload(BasePayload):
         ciphertext: str,
         ciphertext_length: int,
         decrypted: Optional[Dict[str, Any]] = None,
+        tag: Optional[int] = None,
+        neighbors: Optional[List[NeighborEntry]] = None,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -286,6 +347,31 @@ class ResponsePayload(BasePayload):
         self.ciphertext = ciphertext
         self.ciphertext_length = ciphertext_length
         self.decrypted = decrypted
+        self.tag = tag  # Response tag (4 bytes, little-endian)
+        self.neighbors = neighbors or []  # Neighbor table entries (for GetStats responses)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization"""
+        result = super().to_dict()
+        result.update({
+            'destinationHash': self.destination_hash,
+            'sourceHash': self.source_hash,
+            'cipherMac': self.cipher_mac,
+            'ciphertext': self.ciphertext,
+            'ciphertextLength': self.ciphertext_length
+        })
+
+        if self.tag is not None:
+            result['tag'] = self.tag
+
+        if self.decrypted:
+            result['decrypted'] = self.decrypted
+
+        if self.neighbors:
+            result['neighbors'] = [neighbor.to_dict() for neighbor in self.neighbors]
+            result['neighborCount'] = len(self.neighbors)
+
+        return result
 
 
 # Union type for all payload types

@@ -9,6 +9,9 @@ pycryptodome>=3.19.0
 cryptography>=41.0.0  # Includes Ed25519 support
 # Alternative: ed25519>=1.4  # Pure Python Ed25519
 
+# Ed25519 to X25519 key conversion (for key exchange)
+PyNaCl>=1.5.0  # Python binding for Libsodium - provides proper Ed25519/X25519 conversion
+
 # CLI support (optional)
 click>=8.1.0  # For CLI improvements
 
