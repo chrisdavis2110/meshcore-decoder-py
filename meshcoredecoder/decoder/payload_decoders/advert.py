@@ -257,7 +257,7 @@ class AdvertPayloadDecoder:
         options: Optional[Dict[str, Any]] = None
     ) -> Optional[AdvertPayload]:
         """Decode advertisement payload with signature verification"""
-        from src.crypto.ed25519_verifier import Ed25519SignatureVerifier
+        from ...crypto.ed25519_verifier import Ed25519SignatureVerifier
 
         if options is None:
             options = {}
