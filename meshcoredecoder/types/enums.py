@@ -58,3 +58,4 @@ class RequestType(Enum):
     GetTelemetryData = 0x03
     GetMinMaxAvgData = 0x04
     GetAccessList = 0x05
+    GetNeighbours = 0x06

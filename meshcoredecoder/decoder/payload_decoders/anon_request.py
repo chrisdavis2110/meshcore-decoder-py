@@ -2,14 +2,16 @@
 Copyright (c) 2025 Michael Hart: https://github.com/michaelhart/meshcore-decoder
 MIT License
 
-AnonRequest payload decoder
+AnonRequest payload decoder with decryption support
 """
 
 from typing import Optional, Dict, Any, List
 from ...types.payloads import AnonRequestPayload
 from ...types.packet import PayloadSegment
 from ...types.enums import PayloadType, PayloadVersion
-from ...utils.hex import byte_to_hex, bytes_to_hex
+from ...types.crypto import DecryptionOptions
+from ...utils.hex import byte_to_hex, bytes_to_hex, hex_to_bytes
+from ...crypto.channel_crypto import ChannelCrypto
 
 
 class AnonRequestPayloadDecoder:
@@ -18,9 +20,22 @@ class AnonRequestPayloadDecoder:
         payload: bytes,
         options: Optional[Dict[str, Any]] = None
     ) -> Optional[AnonRequestPayload]:
-        """Decode an AnonRequest payload"""
+        """Decode an AnonRequest payload with optional decryption"""
         if options is None:
             options = {}
+
+        # Handle DecryptionOptions object
+        decryption_options = None
+        if isinstance(options, DecryptionOptions):
+            decryption_options = options
+            options = {'include_segments': False}
+        elif isinstance(options, dict) and 'key_store' in options:
+            # Convert dict to DecryptionOptions if it has key_store
+            decryption_options = DecryptionOptions(
+                key_store=options.get('key_store'),
+                attempt_decryption=options.get('attempt_decryption', True),
+                include_raw_ciphertext=options.get('include_raw_ciphertext', True)
+            )
 
         try:
             # Based on MeshCore payloads.md - AnonRequest payload structure:
@@ -118,6 +133,40 @@ class AnonRequestPayloadDecoder:
                 ciphertext=ciphertext,
                 ciphertext_length=len(payload) - 35
             )
+
+            # Attempt decryption if key store is provided
+            # For anonymous requests, we use the sender's public key from the packet
+            if decryption_options and decryption_options.key_store and decryption_options.attempt_decryption:
+                key_store = decryption_options.key_store
+                node_keys = key_store.node_keys if hasattr(key_store, 'node_keys') else {}
+
+                # Find our node key that matches destination hash
+                destination_hash_byte = hex_to_bytes(destination_hash)[0]
+                my_node_key = None
+
+                for my_pub_key_hex, my_priv_key_hex in node_keys.items():
+                    my_pub_key_bytes = hex_to_bytes(my_pub_key_hex)
+                    if len(my_pub_key_bytes) >= 1 and my_pub_key_bytes[0] == destination_hash_byte:
+                        my_node_key = (my_pub_key_hex, my_priv_key_hex)
+                        break
+
+                # Calculate shared secret using sender's public key from packet
+                if my_node_key:
+                    my_pub_key_hex, my_priv_key_hex = my_node_key
+                    shared_secret = ChannelCrypto.calculate_shared_secret(
+                        sender_public_key,
+                        my_priv_key_hex
+                    )
+
+                    if shared_secret:
+                        decryption_result = ChannelCrypto.decrypt_anon_request_payload(
+                            ciphertext,
+                            cipher_mac,
+                            shared_secret
+                        )
+
+                        if decryption_result.success and decryption_result.data:
+                            result.decrypted = decryption_result.data
 
             if options.get('include_segments'):
                 result.segments = segments

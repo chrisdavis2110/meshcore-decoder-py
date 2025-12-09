@@ -160,6 +160,25 @@ class GroupTextPayload(BasePayload):
         self.decrypted = decrypted
 
 
+class GroupDataPayload(BasePayload):
+    """Group datagram payload"""
+    def __init__(
+        self,
+        channel_hash: str,
+        cipher_mac: str,
+        ciphertext: str,
+        ciphertext_length: int,
+        decrypted: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.channel_hash = channel_hash
+        self.cipher_mac = cipher_mac
+        self.ciphertext = ciphertext
+        self.ciphertext_length = ciphertext_length
+        self.decrypted = decrypted
+
+
 class RequestPayload(BasePayload):
     """Request payload"""
     def __init__(
@@ -183,6 +202,24 @@ class RequestPayload(BasePayload):
         self.request_type = request_type
         self.request_data = request_data
         self.decrypted = decrypted
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for JSON serialization"""
+        result = super().to_dict()
+        result.update({
+            'destinationHash': self.destination_hash,
+            'sourceHash': self.source_hash,
+            'cipherMac': self.cipher_mac,
+            'ciphertext': self.ciphertext,
+            'timestamp': self.timestamp,
+            'requestType': self.request_type.value,
+            'requestTypeName': self.request_type.name
+        })
+        if self.request_data:
+            result['requestData'] = self.request_data
+        if self.decrypted:
+            result['decrypted'] = self.decrypted
+        return result
 
 
 class TextMessagePayload(BasePayload):
@@ -246,6 +283,11 @@ class PathPayload(BasePayload):
         path_hashes: List[str],
         extra_type: int,
         extra_data: str,
+        destination_hash: Optional[str] = None,
+        source_hash: Optional[str] = None,
+        cipher_mac: Optional[str] = None,
+        ciphertext: Optional[str] = None,
+        decrypted: Optional[Dict[str, Any]] = None,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -253,6 +295,11 @@ class PathPayload(BasePayload):
         self.path_hashes = path_hashes
         self.extra_type = extra_type
         self.extra_data = extra_data
+        self.destination_hash = destination_hash
+        self.source_hash = source_hash
+        self.cipher_mac = cipher_mac
+        self.ciphertext = ciphertext
+        self.decrypted = decrypted
 
 
 class NeighborEntry:
@@ -329,6 +376,6 @@ class ResponsePayload(BasePayload):
 
 # Union type for all payload types
 PayloadData = (
-    AdvertPayload | TracePayload | GroupTextPayload | RequestPayload |
+    AdvertPayload | TracePayload | GroupTextPayload | GroupDataPayload | RequestPayload |
     TextMessagePayload | AnonRequestPayload | AckPayload | PathPayload | ResponsePayload
 )
