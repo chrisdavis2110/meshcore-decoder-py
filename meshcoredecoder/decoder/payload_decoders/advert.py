@@ -252,7 +252,7 @@ class AdvertPayloadDecoder:
         return sanitized if sanitized else None
 
     @staticmethod
-    async def decode_with_verification(
+    def decode_with_verification(
         payload: bytes,
         options: Optional[Dict[str, Any]] = None
     ) -> Optional[AdvertPayload]:
@@ -274,7 +274,7 @@ class AdvertPayloadDecoder:
             app_data_bytes = payload[app_data_start:]
             app_data_hex = bytes_to_hex(app_data_bytes)
 
-            signature_valid = await Ed25519SignatureVerifier.verify_advertisement_signature(
+            signature_valid = Ed25519SignatureVerifier.verify_advertisement_signature(
                 advert.public_key,
                 advert.signature,
                 advert.timestamp,

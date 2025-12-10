@@ -991,12 +991,8 @@ def decode_command(args):
 
         # Decode packet
         if args.verify:
-            # Use async verification
-            import asyncio
-            loop = asyncio.get_event_loop()
-            packet = loop.run_until_complete(
-                MeshCoreDecoder.decode_with_verification(clean_hex, options)
-            )
+            # Use verification
+            packet = MeshCoreDecoder.decode_with_verification(clean_hex, options)
         else:
             packet = MeshCoreDecoder.decode(clean_hex, options)
 
@@ -1005,11 +1001,7 @@ def decode_command(args):
             if args.structure:
                 # Get structure as well
                 if args.verify:
-                    import asyncio
-                    loop = asyncio.get_event_loop()
-                    structure = loop.run_until_complete(
-                        MeshCoreDecoder.analyze_structure_with_verification(clean_hex, options)
-                    )
+                    structure = MeshCoreDecoder.analyze_structure_with_verification(clean_hex, options)
                 else:
                     structure = MeshCoreDecoder.analyze_structure(clean_hex, options)
                 # Use to_dict() for proper serialization
@@ -1029,11 +1021,7 @@ def decode_command(args):
                 print(f'\n{bold("=== Packet Structure ===")}')
 
                 if args.verify:
-                    import asyncio
-                    loop = asyncio.get_event_loop()
-                    structure = loop.run_until_complete(
-                        MeshCoreDecoder.analyze_structure_with_verification(clean_hex, options)
-                    )
+                    structure = MeshCoreDecoder.analyze_structure_with_verification(clean_hex, options)
                 else:
                     structure = MeshCoreDecoder.analyze_structure(clean_hex, options)
 

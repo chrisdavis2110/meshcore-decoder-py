@@ -27,7 +27,7 @@ class Ed25519SignatureVerifier:
     """Ed25519 signature verification for MeshCore advertisement packets"""
 
     @staticmethod
-    async def verify_advertisement_signature(
+    def verify_advertisement_signature(
         public_key_hex: str,
         signature_hex: str,
         timestamp: int,

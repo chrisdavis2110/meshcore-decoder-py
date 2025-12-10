@@ -35,9 +35,9 @@ class MeshCorePacketDecoder:
         return result['packet']
 
     @staticmethod
-    async def decode_with_verification(hex_data: str, options: Optional[DecryptionOptions] = None) -> DecodedPacket:
+    def decode_with_verification(hex_data: str, options: Optional[DecryptionOptions] = None) -> DecodedPacket:
         """Decode a raw packet from hex string with signature verification for advertisements"""
-        result = await MeshCorePacketDecoder._parse_internal_async(hex_data, False, options)
+        result = MeshCorePacketDecoder._parse_internal_with_verification(hex_data, False, options)
         return result['packet']
 
     @staticmethod
@@ -47,9 +47,9 @@ class MeshCorePacketDecoder:
         return result['structure']
 
     @staticmethod
-    async def analyze_structure_with_verification(hex_data: str, options: Optional[DecryptionOptions] = None) -> PacketStructure:
+    def analyze_structure_with_verification(hex_data: str, options: Optional[DecryptionOptions] = None) -> PacketStructure:
         """Analyze packet structure with signature verification for advertisements"""
-        result = await MeshCorePacketDecoder._parse_internal_async(hex_data, True, options)
+        result = MeshCorePacketDecoder._parse_internal_with_verification(hex_data, True, options)
         return result['structure']
 
     @staticmethod
@@ -368,7 +368,7 @@ class MeshCorePacketDecoder:
             return {'packet': error_packet, 'structure': error_structure}
 
     @staticmethod
-    async def _parse_internal_async(hex_data: str, include_structure: bool, options: Optional[DecryptionOptions]) -> Dict[str, Any]:
+    def _parse_internal_with_verification(hex_data: str, include_structure: bool, options: Optional[DecryptionOptions]) -> Dict[str, Any]:
         """Internal unified parsing method with signature verification for advertisements"""
         # First do the regular parsing
         result = MeshCorePacketDecoder._parse_internal(hex_data, include_structure, options)
@@ -396,7 +396,7 @@ class MeshCorePacketDecoder:
                 payload_bytes = bytes_data[offset:]
 
                 # Decode with verification
-                verified_advert = await AdvertPayloadDecoder.decode_with_verification(
+                verified_advert = AdvertPayloadDecoder.decode_with_verification(
                     payload_bytes,
                     {'include_segments': include_structure, 'segment_offset': 0}
                 )

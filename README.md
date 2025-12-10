@@ -151,19 +151,15 @@ The library automatically:
 ### With Signature Verification
 
 ```python
-import asyncio
 from meshcoredecoder import MeshCoreDecoder
 
-# Async verification for Ed25519 signatures
-async def verify_packet():
-    packet = await MeshCoreDecoder.decode_with_verification(hex_data)
+# Verify Ed25519 signatures
+packet = MeshCoreDecoder.decode_with_verification(hex_data)
 
-    if packet.payload.get('decoded'):
-        advert = packet.payload['decoded']
-        if hasattr(advert, 'signature_valid'):
-            print(f"Signature Valid: {advert.signature_valid}")
-
-asyncio.run(verify_packet())
+if packet.payload.get('decoded'):
+    advert = packet.payload['decoded']
+    if hasattr(advert, 'signature_valid'):
+        print(f"Signature Valid: {advert.signature_valid}")
 ```
 
 ## Trace Packets and SNR Analysis
