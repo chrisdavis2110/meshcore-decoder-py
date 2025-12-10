@@ -251,15 +251,18 @@ class ResponsePayloadDecoder:
             neighbors: List[NeighborEntry] = []
 
             # Check if we should attempt decryption
-            if not options:
+            # Use decryption_options if available, otherwise check if options is a DecryptionOptions object
+            effective_options = decryption_options if decryption_options else (options if isinstance(options, DecryptionOptions) else None)
+
+            if not effective_options:
                 decrypted_data = {'error': 'No decryption options provided. Use --node-key PUBKEY:PRIVKEY to provide decryption keys.'}
-            elif not options.attempt_decryption:
+            elif not effective_options.attempt_decryption:
                 decrypted_data = {'error': 'Decryption disabled in options'}
-            elif not options.key_store:
+            elif not effective_options.key_store:
                 decrypted_data = {'error': 'No key store provided. Use --node-key PUBKEY:PRIVKEY to provide decryption keys.'}
             elif len(ciphertext_bytes) == 0:
                 decrypted_data = {'error': 'No ciphertext to decrypt'}
-            elif options.attempt_decryption and options.key_store and len(ciphertext_bytes) > 0:
+            elif effective_options.attempt_decryption and effective_options.key_store and len(ciphertext_bytes) > 0:
                 # Try to find a node key that matches the source hash
                 # For Response payloads: source_hash is the node that sent the response (the responder)
                 # The response is encrypted with the responder's private key, so we need the private key
@@ -286,7 +289,7 @@ class ResponsePayloadDecoder:
                 our_pubkey = None  # Our public key (might match destination_hash)
 
                 # First, find the sender's public key (matches source_hash) and our private key
-                for stored_pubkey, stored_privkey in options.key_store.node_keys.items():
+                for stored_pubkey, stored_privkey in effective_options.key_store.node_keys.items():
                     pubkey_bytes = bytes.fromhex(stored_pubkey)
                     if len(pubkey_bytes) > 0:
                         pubkey_first_byte = byte_to_hex(pubkey_bytes[0])
@@ -350,14 +353,23 @@ class ResponsePayloadDecoder:
                                 (decrypted_bytes[3] << 24)
                             )
 
-                            # Try to parse neighbor table (GetStats response)
+                            # Extract content (bytes 4+)
+                            content_bytes = decrypted_bytes[4:] if len(decrypted_bytes) > 4 else b''
+
+                            # Parse response content to determine type
+                            parsed_content = ResponsePayloadDecoder._parse_response_content(tag, content_bytes)
+
+                            # Try to parse neighbor table (for GetNeighbours responses)
                             neighbors, total_count = ResponsePayloadDecoder._parse_neighbors(decrypted_bytes, 0)
 
+                            # Build decrypted_data with parsed content
                             decrypted_data = {
                                 'tag': tag,
                                 'raw': bytes_to_hex(decrypted_bytes),
-                                'neighborCount': len(neighbors)
+                                'content': parsed_content
                             }
+                            if len(neighbors) > 0:
+                                decrypted_data['neighborCount'] = len(neighbors)
                             if total_count is not None:
                                 decrypted_data['totalNeighborCount'] = total_count
                         else:
@@ -372,7 +384,7 @@ class ResponsePayloadDecoder:
 
                 # Try all keys as fallback - maybe the key mapping is different
                 if not decryption_success:
-                    for stored_pubkey, stored_privkey in options.key_store.node_keys.items():
+                    for stored_pubkey, stored_privkey in effective_options.key_store.node_keys.items():
                         # Skip if we already tried this combination
                         if sender_pubkey and stored_pubkey == sender_pubkey:
                             continue
@@ -401,6 +413,27 @@ class ResponsePayloadDecoder:
                             if decryption_result.success and decryption_result.data:
                                 decrypted_bytes = decryption_result.data
                                 decryption_success = True
+                                # Parse the decrypted content
+                                if len(decrypted_bytes) >= 4:
+                                    tag = (
+                                        decrypted_bytes[0] |
+                                        (decrypted_bytes[1] << 8) |
+                                        (decrypted_bytes[2] << 16) |
+                                        (decrypted_bytes[3] << 24)
+                                    )
+                                    content_bytes = decrypted_bytes[4:] if len(decrypted_bytes) > 4 else b''
+                                    parsed_content = ResponsePayloadDecoder._parse_response_content(tag, content_bytes)
+                                    neighbors, total_count = ResponsePayloadDecoder._parse_neighbors(decrypted_bytes, 0)
+
+                                    decrypted_data = {
+                                        'tag': tag,
+                                        'raw': bytes_to_hex(decrypted_bytes),
+                                        'content': parsed_content
+                                    }
+                                    if len(neighbors) > 0:
+                                        decrypted_data['neighborCount'] = len(neighbors)
+                                    if total_count is not None:
+                                        decrypted_data['totalNeighborCount'] = total_count
                                 break
                             else:
                                 if decryption_result.error and "succeeded but MAC" not in decryption_result.error:
@@ -409,13 +442,13 @@ class ResponsePayloadDecoder:
 
                 # Fallback: try old method if key exchange didn't work
                 if not decryption_success:
-                    for node_pubkey, node_privkey in options.key_store.node_keys.items():
+                    for node_pubkey, node_privkey in effective_options.key_store.node_keys.items():
                         pubkey_bytes = bytes.fromhex(node_pubkey)
                         if len(pubkey_bytes) > 0:
                             pubkey_first_byte = byte_to_hex(pubkey_bytes[0])
                             should_try = (pubkey_first_byte == source_hash or
                                          pubkey_first_byte == destination_hash or
-                                         len(options.key_store.node_keys) == 1)
+                                         len(effective_options.key_store.node_keys) == 1)
 
                             if should_try and not any(m['pubkey'] == node_pubkey[:16] + '...' for m in matching_keys_tried):
                                 # Try old fallback methods
@@ -450,14 +483,22 @@ class ResponsePayloadDecoder:
                                         (decrypted_bytes[3] << 24)
                                     )
 
-                                    # Try to parse neighbor table (GetStats response)
+                                    # Extract content (bytes 4+)
+                                    content_bytes = decrypted_bytes[4:] if len(decrypted_bytes) > 4 else b''
+
+                                    # Parse response content to determine type
+                                    parsed_content = ResponsePayloadDecoder._parse_response_content(tag, content_bytes)
+
+                                    # Try to parse neighbor table
                                     neighbors, total_count = ResponsePayloadDecoder._parse_neighbors(decrypted_bytes, 0)
 
                                     decrypted_data = {
                                         'tag': tag,
                                         'raw': bytes_to_hex(decrypted_bytes),
-                                        'neighborCount': len(neighbors)
+                                        'content': parsed_content
                                     }
+                                    if len(neighbors) > 0:
+                                        decrypted_data['neighborCount'] = len(neighbors)
                                     if total_count is not None:
                                         decrypted_data['totalNeighborCount'] = total_count
 
@@ -471,7 +512,7 @@ class ResponsePayloadDecoder:
                 # (in case of hash collisions or key format issues)
                 if not decryption_success and len(matching_keys_tried) > 0:
                     # We already tried matching keys, now try all remaining keys
-                    for node_pubkey, node_privkey in options.key_store.node_keys.items():
+                    for node_pubkey, node_privkey in effective_options.key_store.node_keys.items():
                         pubkey_bytes = bytes.fromhex(node_pubkey)
                         if len(pubkey_bytes) > 0:
                             pubkey_first_byte = byte_to_hex(pubkey_bytes[0])
@@ -496,15 +537,23 @@ class ResponsePayloadDecoder:
                                             (decrypted_bytes[3] << 24)
                                         )
 
+                                        # Extract content (bytes 4+)
+                                        content_bytes = decrypted_bytes[4:] if len(decrypted_bytes) > 4 else b''
+
+                                        # Parse response content to determine type
+                                        parsed_content = ResponsePayloadDecoder._parse_response_content(tag, content_bytes)
+
                                         # Try to parse neighbor table
                                         neighbors, total_count = ResponsePayloadDecoder._parse_neighbors(decrypted_bytes, 0)
 
                                         decrypted_data = {
                                             'tag': tag,
                                             'raw': bytes_to_hex(decrypted_bytes),
-                                            'neighborCount': len(neighbors),
+                                            'content': parsed_content,
                                             'note': f'Decrypted with key hash {pubkey_first_byte} (did not match source/dest hash)'
                                         }
+                                        if len(neighbors) > 0:
+                                            decrypted_data['neighborCount'] = len(neighbors)
                                         if total_count is not None:
                                             decrypted_data['totalNeighborCount'] = total_count
 
@@ -515,10 +564,10 @@ class ResponsePayloadDecoder:
                     error_msg = 'Decryption failed'
                     if len(matching_keys_tried) == 0:
                         error_msg += f': No node key found matching source hash ({source_hash}) or destination hash ({destination_hash})'
-                        error_msg += f'. Available keys: {len(options.key_store.node_keys)} key(s) provided'
-                        if len(options.key_store.node_keys) > 0:
+                        error_msg += f'. Available keys: {len(effective_options.key_store.node_keys)} key(s) provided'
+                        if len(effective_options.key_store.node_keys) > 0:
                             available_hashes = []
-                            for pk in options.key_store.node_keys.keys():
+                            for pk in effective_options.key_store.node_keys.keys():
                                 try:
                                     pk_bytes = bytes.fromhex(pk)
                                     if len(pk_bytes) > 0:
@@ -541,6 +590,11 @@ class ResponsePayloadDecoder:
             if decrypted_data is None:
                 decrypted_data = {'error': 'Decryption was attempted but no result was set. This is a bug.'}
 
+            # Extract tag from decrypted_data if available
+            result_tag = tag
+            if decrypted_data and 'tag' in decrypted_data:
+                result_tag = decrypted_data['tag']
+
             result = ResponsePayload(
                 payload_type=PayloadType.Response,
                 version=PayloadVersion.Version1,
@@ -551,12 +605,20 @@ class ResponsePayloadDecoder:
                 ciphertext=ciphertext,
                 ciphertext_length=len(payload) - 4,
                 decrypted=decrypted_data,
-                tag=tag,
+                tag=result_tag,
                 neighbors=neighbors
             )
 
-            # Attempt decryption if key store is provided
-            if decryption_options and decryption_options.key_store and decryption_options.attempt_decryption:
+            # Attempt decryption if key store is provided (second path - try if first path failed or didn't run)
+            # Check if first path succeeded by looking for valid content (not error and not unknown type)
+            first_path_succeeded = (
+                result.decrypted and
+                'content' in result.decrypted and
+                result.decrypted.get('content', {}).get('type') != 'unknown' and
+                'error' not in result.decrypted
+            )
+
+            if not first_path_succeeded and decryption_options and decryption_options.key_store and decryption_options.attempt_decryption:
                 key_store = decryption_options.key_store
 
                 # Try to decrypt using shared secrets or calculate from node keys
@@ -582,10 +644,13 @@ class ResponsePayloadDecoder:
                             'tag': decryption_result.data['tag'],
                             'content': parsed_content
                         }
+                        result.tag = decryption_result.data['tag']
                         break  # Stop trying once we find a working key
 
                 # If shared secrets didn't work, try calculating from node keys
-                if not result.decrypted and node_keys:
+                if (not result.decrypted or
+                    (result.decrypted.get('content', {}).get('type') == 'unknown') or
+                    'error' in result.decrypted) and node_keys:
                     destination_hash_byte = hex_to_bytes(destination_hash)[0]
 
                     # Find our node key that matches destination hash
@@ -629,7 +694,10 @@ class ResponsePayloadDecoder:
                                     break
 
                         # If no peer keys matched by hash, try all peer keys anyway
-                        if not result.decrypted and hasattr(key_store, 'peer_public_keys') and key_store.peer_public_keys:
+                        if ((not result.decrypted or
+                             (result.decrypted.get('content', {}).get('type') == 'unknown') or
+                             'error' in result.decrypted) and
+                            hasattr(key_store, 'peer_public_keys') and key_store.peer_public_keys):
                             for peer_pub_key_hex in key_store.peer_public_keys:
                                 shared_secret = ChannelCrypto.calculate_shared_secret(
                                     peer_pub_key_hex,
@@ -650,8 +718,9 @@ class ResponsePayloadDecoder:
                                             'tag': decryption_result.data['tag'],
                                             'content': parsed_content
                                         }
+                                        result.tag = decryption_result.data['tag']
                                         break
-                                if result.decrypted:
+                                if result.decrypted and result.decrypted.get('content', {}).get('type') != 'unknown':
                                     break
 
             if options.get('include_segments'):

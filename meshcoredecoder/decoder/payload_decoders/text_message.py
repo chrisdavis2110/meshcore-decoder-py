@@ -119,6 +119,9 @@ class TextMessagePayloadDecoder:
                     value=ciphertext
                 ))
 
+            # Initialize decrypted_data before using it
+            decrypted_data: Optional[Dict[str, Any]] = None
+
             result = TextMessagePayload(
                 payload_type=PayloadType.TextMessage,
                 version=PayloadVersion.Version1,

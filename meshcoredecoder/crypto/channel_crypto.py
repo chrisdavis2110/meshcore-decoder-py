@@ -1014,7 +1014,7 @@ class ChannelCrypto:
                 (decrypted_bytes[3] << 24)
             )
 
-            # Check if this is a room server login (has sync_timestamp)
+            # For anonrequest payloads, default to repeater/sensor login
             # Room server: timestamp(4) + sync_timestamp(4) + password
             # Repeater/Sensor: timestamp(4) + password
             # Regular request: timestamp(4) + req_type(1) + req_data
@@ -1023,89 +1023,31 @@ class ChannelCrypto:
             }
 
             if len(decrypted_bytes) >= 8:
-                # Could be room server login with sync_timestamp
-                sync_timestamp = (
-                    decrypted_bytes[4] |
-                    (decrypted_bytes[5] << 8) |
-                    (decrypted_bytes[6] << 16) |
-                    (decrypted_bytes[7] << 24)
-                )
-
-                # Check if bytes 4-7 look like a valid timestamp (reasonable Unix timestamp)
-                # If sync_timestamp is 0 or very small, it might actually be the start of a password
-                # Room server sync_timestamp should be a reasonable timestamp (e.g., > 1000000000)
-                is_likely_sync_timestamp = (sync_timestamp > 1000000000)
-
-                if is_likely_sync_timestamp:
-                    # Room server login: timestamp(4) + sync_timestamp(4) + password
-                    result_data['sync_timestamp'] = sync_timestamp
-                    # Try to decode password (null-terminated string)
-                    password_bytes = decrypted_bytes[8:]
-                    try:
-                        password = password_bytes.decode('utf-8')
-                        null_index = password.find('\0')
-                        if null_index >= 0:
-                            password = password[:null_index]
-                        result_data['password'] = password
-                        result_data['type'] = 'room_server_login'
-                    except UnicodeDecodeError:
-                        # Might be regular request format
-                        if len(decrypted_bytes) >= 5:
-                            request_type = decrypted_bytes[4]
-                            request_data = decrypted_bytes[5:]
-                            result_data['request_type'] = request_type
-                            result_data['request_data'] = request_data
-                            result_data['type'] = 'request'
-                else:
-                    # sync_timestamp is 0 or very small - could be repeater/sensor login OR regular request
-                    # Check if byte 4 is a valid request type first (0x01-0x06)
-                    if len(decrypted_bytes) >= 5:
-                        request_type_byte = decrypted_bytes[4]
-                        is_valid_request_type = (0x01 <= request_type_byte <= 0x06)
-
-                        if is_valid_request_type:
-                            # Regular request: timestamp(4) + req_type(1) + req_data
-                            request_type = request_type_byte
-                            request_data = decrypted_bytes[5:]
-                            result_data['request_type'] = request_type
-                            result_data['request_data'] = request_data
-                            result_data['type'] = 'request'
-                        else:
-                            # Not a valid request type - likely repeater/sensor login
-                            # Repeater/Sensor login: timestamp(4) + password(null-terminated string)
-                            # Password starts at byte 4
-                            password_bytes = decrypted_bytes[4:]
-                            try:
-                                password = password_bytes.decode('utf-8')
-                                null_index = password.find('\0')
-                                if null_index >= 0:
-                                    password = password[:null_index]
-                                result_data['password'] = password
-                                result_data['type'] = 'repeater_sensor_login'
-                            except UnicodeDecodeError:
-                                # If it's not valid UTF-8, treat as unknown
-                                result_data['raw'] = bytes_to_hex(decrypted_bytes[4:])
-                                result_data['type'] = 'unknown'
-                    else:
-                        # Too short - can't determine
-                        result_data['raw'] = bytes_to_hex(decrypted_bytes)
-                        result_data['type'] = 'unknown'
-            elif len(decrypted_bytes) >= 5:
-                # Could be regular request format or repeater/sensor login
-                # Check if byte 4 is a valid request type (0x01-0x06)
+                # Check if byte 4 is a valid request type first (0x01-0x06)
+                # This takes priority over checking for sync_timestamp
                 request_type_byte = decrypted_bytes[4]
                 is_valid_request_type = (0x01 <= request_type_byte <= 0x06)
 
                 if is_valid_request_type:
-                    # Regular request format: timestamp(4) + req_type(1) + req_data
+                    # Regular request: timestamp(4) + req_type(1) + req_data
                     request_type = request_type_byte
                     request_data = decrypted_bytes[5:]
                     result_data['request_type'] = request_type
                     result_data['request_data'] = request_data
                     result_data['type'] = 'request'
                 else:
+                    # Not a valid request type - check if it could be room server or repeater/sensor login
+                    sync_timestamp = (
+                        decrypted_bytes[4] |
+                        (decrypted_bytes[5] << 8) |
+                        (decrypted_bytes[6] << 16) |
+                        (decrypted_bytes[7] << 24)
+                    )
+
+                    # For anonrequest payloads, default to repeater/sensor login
+                    # AnonRequest logins are always repeater/sensor logins, not room server logins
                     # Repeater/Sensor login: timestamp(4) + password(null-terminated string)
-                    # Byte 4 is the start of the password string
+                    # Password starts at byte 4
                     password_bytes = decrypted_bytes[4:]
                     try:
                         password = password_bytes.decode('utf-8')
@@ -1115,15 +1057,44 @@ class ChannelCrypto:
                         result_data['password'] = password
                         result_data['type'] = 'repeater_sensor_login'
                     except UnicodeDecodeError:
-                        # If it's not valid UTF-8, might still be a request with invalid type
-                        # or corrupted data - try as request anyway
-                        result_data['request_type'] = request_type_byte
-                        result_data['request_data'] = decrypted_bytes[5:]
-                        result_data['type'] = 'request'
+                        # If it's not valid UTF-8, treat as unknown
+                        result_data['raw'] = bytes_to_hex(decrypted_bytes[4:])
+                        result_data['type'] = 'unknown'
             else:
-                # Too short - can't determine type
-                result_data['raw'] = bytes_to_hex(decrypted_bytes)
-                result_data['type'] = 'unknown'
+                # Less than 8 bytes - check if byte 4 is a valid request type
+                if len(decrypted_bytes) >= 5:
+                    request_type_byte = decrypted_bytes[4]
+                    is_valid_request_type = (0x01 <= request_type_byte <= 0x06)
+
+                    if is_valid_request_type:
+                        # Regular request: timestamp(4) + req_type(1) + req_data
+                        request_type = request_type_byte
+                        request_data = decrypted_bytes[5:]
+                        result_data['request_type'] = request_type
+                        result_data['request_data'] = request_data
+                        result_data['type'] = 'request'
+                    else:
+                        # Not a valid request type - likely repeater/sensor login
+                        # Repeater/Sensor login: timestamp(4) + password(null-terminated string)
+                        # Byte 4 is the start of the password string
+                        password_bytes = decrypted_bytes[4:]
+                        try:
+                            password = password_bytes.decode('utf-8')
+                            null_index = password.find('\0')
+                            if null_index >= 0:
+                                password = password[:null_index]
+                            result_data['password'] = password
+                            result_data['type'] = 'repeater_sensor_login'
+                        except UnicodeDecodeError:
+                            # If it's not valid UTF-8, might still be a request with invalid type
+                            # or corrupted data - try as request anyway
+                            result_data['request_type'] = request_type_byte
+                            result_data['request_data'] = decrypted_bytes[5:] if len(decrypted_bytes) > 5 else b''
+                            result_data['type'] = 'request'
+                else:
+                    # Too short - can't determine
+                    result_data['raw'] = bytes_to_hex(decrypted_bytes)
+                    result_data['type'] = 'unknown'
 
             return DecryptionResult(
                 success=True,
