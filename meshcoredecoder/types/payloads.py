@@ -1,6 +1,6 @@
 """
-Payload type definitions
-Reference: https://github.com/meshcore-dev/MeshCore/blob/main/docs/payloads.md
+Payload type definitions.
+Reference: docs/payloads.md
 """
 
 from typing import Dict, Optional, List, Any
@@ -326,6 +326,34 @@ class NeighborEntry:
         }
 
 
+class ControlPayload(BasePayload):
+    """Control packet payload (unencrypted). See payloads.md Control data."""
+    def __init__(
+        self,
+        flags: int,
+        sub_type: int,
+        data_hex: str,
+        parsed: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.flags = flags
+        self.sub_type = sub_type
+        self.data_hex = data_hex
+        self.parsed = parsed or {}
+
+    def to_dict(self) -> Dict[str, Any]:
+        result = super().to_dict()
+        result.update({
+            'flags': self.flags,
+            'subType': self.sub_type,
+            'dataHex': self.data_hex,
+        })
+        if self.parsed:
+            result['parsed'] = self.parsed
+        return result
+
+
 class ResponsePayload(BasePayload):
     """Response payload"""
     def __init__(
@@ -377,5 +405,6 @@ class ResponsePayload(BasePayload):
 # Union type for all payload types
 PayloadData = (
     AdvertPayload | TracePayload | GroupTextPayload | GroupDataPayload | RequestPayload |
-    TextMessagePayload | AnonRequestPayload | AckPayload | PathPayload | ResponsePayload
+    TextMessagePayload | AnonRequestPayload | AckPayload | PathPayload | ResponsePayload |
+    ControlPayload
 )

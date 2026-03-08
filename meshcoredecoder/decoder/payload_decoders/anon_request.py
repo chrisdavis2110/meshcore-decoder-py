@@ -38,7 +38,7 @@ class AnonRequestPayloadDecoder:
             )
 
         try:
-            # Based on MeshCore payloads.md - AnonRequest payload structure:
+            # docs/payloads.md: AnonRequest = dest_hash(1) + public_key(32) + cipher MAC(2) + ciphertext.
             # - destination_hash (1 byte)
             # - sender_public_key (32 bytes)
             # - cipher_mac (2 bytes)

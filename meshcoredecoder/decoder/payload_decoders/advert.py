@@ -53,7 +53,7 @@ class AdvertPayloadDecoder:
             segment_offset = options.get('segment_offset', 0)
             current_offset = 0
 
-            # Parse advertisement structure from payloads.md
+            # docs/payloads.md: Advert = public_key(32) + timestamp(4) + signature(64) + appdata (flags + optional lat/long, feature1/2, name).
             public_key = bytes_to_hex(payload[current_offset:current_offset + 32])
             if options.get('include_segments'):
                 segments.append(PayloadSegment(

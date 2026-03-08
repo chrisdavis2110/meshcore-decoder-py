@@ -54,5 +54,7 @@ def get_request_type_name(request_type: RequestType) -> str:
         RequestType.GetTelemetryData: 'Get Telemetry Data',
         RequestType.GetMinMaxAvgData: 'Get Min/Max/Avg Data',
         RequestType.GetAccessList: 'Get Access List',
+        RequestType.GetNeighbours: 'Get Neighbors',
+        RequestType.GetOwnerInfo: 'Get Owner Info',
     }
     return mapping.get(request_type, f"Unknown ({request_type})")

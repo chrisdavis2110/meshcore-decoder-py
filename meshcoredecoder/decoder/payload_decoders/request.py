@@ -38,7 +38,8 @@ class RequestPayloadDecoder:
             )
 
         try:
-            # Based on MeshCore payloads.md - Request payload structure:
+            # docs/payloads.md: Request payload = dest_hash(1) + source_hash(1) + cipher MAC(2) + ciphertext.
+            # Ciphertext plaintext: timestamp(4), request_type(1), request_data(rest).
             # - destination hash (1 byte)
             # - source hash (1 byte)
             # - cipher MAC (2 bytes)
@@ -344,6 +345,11 @@ class RequestPayloadDecoder:
                     parsed['description'] = f'Fetch {count} neighbors starting at offset {offset}, ordered by {parsed["order_by_name"]}'
                 else:
                     parsed['error'] = f'Request data too short (expected at least 10 bytes, got {len(request_data)})'
+
+            elif request_type == RequestType.GetOwnerInfo:
+                # 0x07 - Get Owner Info (repeater firmware-ver/name/owner info)
+                parsed['description'] = 'Get owner info (repeater firmware version, name, owner)'
+                parsed['raw'] = bytes_to_hex(request_data) if len(request_data) > 0 else ''
 
             else:
                 # Unknown or Keepalive (deprecated)

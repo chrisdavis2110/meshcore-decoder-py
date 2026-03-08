@@ -38,7 +38,8 @@ class PathPayloadDecoder:
             )
 
         try:
-            # Based on MeshCore packet_breakdown_guide.md - Path payload structure:
+            # docs/payloads.md: Path = dest_hash(1) + source_hash(1) + cipher MAC(2) + ciphertext.
+            # Ciphertext plaintext: path_length(1), path(bytes), extra_type(1), extra(rest).
             # Encrypted format:
             # - destination_hash (1 byte)
             # - source_hash (1 byte)

@@ -2,7 +2,8 @@
 Copyright (c) 2025 Michael Hart: https://github.com/michaelhart/meshcore-decoder
 MIT License
 
-Main packet decoder - orchestrates all payload decoders
+Main packet decoder - orchestrates all payload decoders.
+Packet layout: docs/packet_format.md. Payload formats: docs/payloads.md.
 """
 
 from typing import Optional, Dict, Any, List, Tuple
@@ -23,6 +24,7 @@ from .payload_decoders.request import RequestPayloadDecoder
 from .payload_decoders.response import ResponsePayloadDecoder
 from .payload_decoders.anon_request import AnonRequestPayloadDecoder
 from .payload_decoders.text_message import TextMessagePayloadDecoder
+from .payload_decoders.control import ControlPayloadDecoder
 
 
 class MeshCorePacketDecoder:
@@ -139,16 +141,14 @@ class MeshCorePacketDecoder:
                 transport_codes = (code1, code2)
 
                 if include_structure:
-                    transport_code = (bytes_data[offset] |
-                                       (bytes_data[offset + 1] << 8) |
-                                       (bytes_data[offset + 2] << 16) |
-                                       (bytes_data[offset + 3] << 24))
+                    transport_code_1 = bytes_data[offset] | (bytes_data[offset + 1] << 8)
+                    transport_code_2 = bytes_data[offset + 2] | (bytes_data[offset + 3] << 8)
                     segments.append(PacketSegment(
-                        name='Transport Code',
-                        description='Used for Direct/Response routing',
+                        name='Transport Codes',
+                        description='2× uint16: transport_code_1 (region scope), transport_code_2 (reserved). See packet_format.md.',
                         start_byte=offset,
                         end_byte=offset + 3,
-                        value=f'0x{transport_code:08x}'
+                        value=f'0x{transport_code_1:04x} 0x{transport_code_2:04x}'
                     ))
                 offset += 4
 
@@ -296,6 +296,14 @@ class MeshCorePacketDecoder:
                 decoder_options['include_segments'] = include_structure
                 decoder_options['segment_offset'] = 0
                 decoded_payload = TextMessagePayloadDecoder.decode(payload_bytes, options if options else decoder_options)
+            elif payload_type == PayloadType.Control:
+                result = ControlPayloadDecoder.decode(payload_bytes, {'include_segments': include_structure, 'segment_offset': 0})
+                decoded_payload = result
+                if result and hasattr(result, 'segments') and result.segments:
+                    payload_segments.extend(result.segments)
+            elif payload_type in (PayloadType.Reserved0C, PayloadType.Reserved0D, PayloadType.Reserved0E):
+                # Reserved payload types: show raw only
+                decoded_payload = None
 
             # If no segments were generated and we need structure, show basic payload info
             if include_structure and len(payload_segments) == 0 and len(bytes_data) > offset:

@@ -38,7 +38,8 @@ class TextMessagePayloadDecoder:
             )
 
         try:
-            # Based on MeshCore packet_breakdown_guide.md - TextMessage payload structure:
+            # docs/payloads.md: TextMessage = dest_hash(1) + source_hash(1) + cipher MAC(2) + ciphertext.
+            # Ciphertext plaintext: timestamp(4), txt_type+attempt(1), message(rest). txt_type: 0=plain, 1=CLI, 2=signed.
             # - destination_hash (1 byte)
             # - source_hash (1 byte)
             # - cipher_mac (2 bytes)

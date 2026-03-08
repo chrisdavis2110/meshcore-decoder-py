@@ -23,7 +23,7 @@ class AckPayloadDecoder:
             options = {}
 
         try:
-            # Based on MeshCore payloads.md - Ack payload structure:
+            # docs/payloads.md: Ack = checksum(4), CRC of message timestamp, text, and sender pubkey.
             # - checksum (4 bytes) - CRC checksum of message timestamp, text, and sender pubkey
 
             if len(payload) < 4:

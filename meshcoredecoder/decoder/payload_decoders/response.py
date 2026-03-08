@@ -163,7 +163,8 @@ class ResponsePayloadDecoder:
             )
 
         try:
-            # Based on MeshCore payloads.md - Response payload structure:
+            # docs/payloads.md: Response = dest_hash(1) + source_hash(1) + cipher MAC(2) + ciphertext.
+            # Ciphertext plaintext: tag(4), content(rest).
             # - destination_hash (1 byte)
             # - source_hash (1 byte)
             # - cipher_mac (2 bytes)
