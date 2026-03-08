@@ -793,6 +793,42 @@ for name, hex_data, opts in packets:
 
 
 
+## Publishing to PyPI
+
+To release a new version and upload to PyPI:
+
+1. **Bump the version** in these files (keep them in sync):
+   - `pyproject.toml` → `version = "X.Y.Z"`
+   - `meshcoredecoder/__init__.py` → `__version__ = "X.Y.Z"`
+   - `setup.py` → `version="X.Y.Z"`
+   - `index.py` → `__version__ = "X.Y.Z"`
+
+2. **Install build tools** (if needed):
+   ```bash
+   pip install build twine
+   ```
+
+3. **Build the package**:
+   ```bash
+   python -m build
+   ```
+   This creates `dist/meshcoredecoder-X.Y.Z.tar.gz` and `dist/meshcoredecoder_X.Y.Z-*.whl`.
+
+4. **Upload to PyPI** (requires a [PyPI account](https://pypi.org/account/register/) and API token):
+   ```bash
+   twine upload dist/*
+   ```
+   Use your PyPI username and an [API token](https://pypi.org/manage/account/token/) as the password. For Test PyPI first:
+   ```bash
+   twine upload --repository testpypi dist/*
+   ```
+
+5. **Tag the release** (optional):
+   ```bash
+   git tag vX.Y.Z
+   git push origin vX.Y.Z
+   ```
+
 ## License
 
 MIT License

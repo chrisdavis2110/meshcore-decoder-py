@@ -11,7 +11,7 @@ import sys
 import json
 import asyncio
 from typing import List, Optional
-from meshcoredecoder import MeshCoreDecoder
+from meshcoredecoder import MeshCoreDecoder, __version__
 from meshcoredecoder.crypto import MeshCoreKeyStore
 from meshcoredecoder.types.crypto import DecryptionOptions
 from meshcoredecoder.utils.enum_names import get_route_type_name, get_payload_type_name, get_device_role_name
@@ -877,7 +877,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
-    parser.add_argument('--version', action='version', version='0.1.0')
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
 
     subparsers = parser.add_subparsers(dest='command', help='Commands')
 
