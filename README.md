@@ -7,8 +7,17 @@ A Python library for decoding MeshCore mesh networking packets with full cryptog
 ## Features
 
 - **Packet Decoding**: Decode MeshCore packets
-- **Built-in Decryption**: Decrypt GroupText, TextMessage, and other encrypted payloads
+- **Built-in Decryption**: Decrypt GroupText, TextMessage, Request, Response, Path, and AnonRequest payloads
 - **Developer Friendly**: Python-first with full type hints and data classes
+
+## Protocol reference
+
+Packet and payload layouts follow the MeshCore protocol as described in the local docs:
+
+- **[docs/packet_format.md](docs/packet_format.md)** – Packet layout (header, transport codes, path, payload), route types, payload types, payload versions
+- **[docs/payloads.md](docs/payloads.md)** – Payload formats (Advert, Ack, Request/Response, TextMessage, Path, Control, Group text/datagram, etc.)
+
+Supported payload types include: Request, Response, TextMessage, Ack, Advert, GroupText, GroupData, AnonRequest, Path, Trace, Multipart, Control (DISCOVER_REQ / DISCOVER_RESP), reserved (0x0C–0x0E), and RawCustom. Request types include GetStats, Keepalive, GetTelemetryData, GetMinMaxAvgData, GetAccessList, GetNeighbours, and GetOwnerInfo.
 
 ## Installation
 
@@ -192,9 +201,9 @@ if packet.payload_type == PayloadType.Trace and packet.payload.get('decoded'):
 
 SNR (Signal-to-Noise Ratio) data is available from multiple packet types:
 
-1. **TRACE Packets** (already supported) - SNR values for each hop in the path
-2. **GetStats Response Packets** (just implemented) - Full neighbor table with SNR values
-3. **DISCOVER_RESP Control Packets** (not yet implemented) - SNR in discovery responses
+1. **TRACE Packets** – SNR values for each hop in the path
+2. **GetStats / GetNeighbours Response Packets** – Full neighbor table with SNR values (requires decryption)
+3. **DISCOVER_RESP Control Packets** – SNR in discovery responses (unencrypted; decode with `PayloadType.Control`)
 
 ### How GetStats Works
 
@@ -208,8 +217,8 @@ GetStats is a request/response protocol used to query a repeater node for its ne
   - **Cipher MAC** (2 bytes): MAC for encrypted data
   - **Ciphertext**: Encrypted data containing:
     - Timestamp (4 bytes, Unix timestamp)
-    - Request type (1 byte, 0x01 for GetStats)
-    - Request data (optional, empty for GetStats)
+    - Request type (1 byte): e.g. 0x01 GetStats, 0x06 GetNeighbours, 0x07 GetOwnerInfo (see [docs/payloads.md](docs/payloads.md))
+    - Request data (optional, depends on request type)
 
 **2. Receiving a Neighbor List Response:**
 - The target repeater responds with a Response packet
@@ -339,9 +348,9 @@ Byte 8+:    Array of neighbor entries, each entry:
 |--------|---------|-----------------|---------------------|
 | **TRACE Packets** | ✅ Path SNR per hop | Path hashes, trace tag | ❌ No |
 | **Response Packets** | ✅ Neighbor SNR | Full neighbor table (pubkey prefixes, timestamps) | ✅ Yes (node key) |
-| **DISCOVER_RESP** | ✅ SNR | Node info, tag | ❌ No (not yet implemented) |
+| **DISCOVER_RESP (Control)** | ✅ SNR | Node info, tag, pubkey (8 or 32 bytes) | ❌ No |
 
-**Note:** Response packets are the only source that provides the complete neighbor table with pubkey prefixes, timestamps, and SNR values. TRACE packets provide SNR for the specific path taken, but not the full neighbor table.
+**Note:** Response packets are the only source that provides the complete neighbor table with pubkey prefixes, timestamps, and SNR values. TRACE packets provide SNR for the specific path taken. Control packets with sub_type DISCOVER_RESP provide SNR and node pubkey (or prefix) without decryption.
 
 **NeighborEntry Object:**
 
@@ -392,6 +401,10 @@ The CLI will automatically:
 - Parse the neighbor entries
 - Display total neighbors available and neighbors in the packet
 - Show each neighbor's pubkey prefix, SNR, and timestamps
+
+## Packet format (summary)
+
+Each packet is: **header** (1 byte) → optional **transport_codes** (4 bytes for Transport Flood/Direct) → **path_length** (1 byte) → **path** (0–64 bytes) → **payload** (0–184 bytes). The header encodes route type (bits 0–1), payload type (bits 2–5), and payload version (bits 6–7). Path length is variable (e.g. 0, 1, or 2 bytes of path data are all valid). Full field descriptions and tables are in [docs/packet_format.md](docs/packet_format.md).
 
 ## Packet Structure Analysis
 
@@ -632,7 +645,7 @@ packet = MeshCoreDecoder.decode(packet_hex)
 
 if packet.payload_type == PayloadType.Ack:
     ack = packet.payload['decoded']
-    print(f"Checksum: 0x{ack.checksum:08X}")
+    print(f"Checksum: {ack.checksum}")  # 4-byte CRC (hex)
 ```
 
 #### Trace
@@ -648,6 +661,25 @@ if packet.payload_type == PayloadType.Trace:
         print("SNR Values:")
         for i, snr in enumerate(trace.snr_values, 1):
             print(f"  Hop {i}: {snr:.1f} dB")
+```
+
+#### Control (DISCOVER_REQ / DISCOVER_RESP)
+```python
+# Control payloads are unencrypted. Sub-types include DISCOVER_REQ (0x8) and DISCOVER_RESP (0x9).
+packet_hex = "2D00..."  # Flood + Control + path_len=0 + payload (flags + data)
+packet = MeshCoreDecoder.decode(packet_hex)
+
+if packet.payload_type == PayloadType.Control and packet.payload.get('decoded'):
+    ctrl = packet.payload['decoded']
+    print(f"Sub-type: 0x{ctrl.sub_type:x}")
+    if ctrl.parsed.get('sub_type_name') == 'DISCOVER_REQ':
+        print(f"  prefix_only: {ctrl.parsed.get('prefix_only')}")
+        print(f"  type_filter: {ctrl.parsed.get('type_filter_hex')}")
+        print(f"  tag: {ctrl.parsed.get('tag_hex')}")
+    elif ctrl.parsed.get('sub_type_name') == 'DISCOVER_RESP':
+        print(f"  SNR: {ctrl.parsed.get('snr_db')} dB")
+        print(f"  tag: {ctrl.parsed.get('tag_hex')}")
+        print(f"  pubkey: {ctrl.parsed.get('pubkey', '')[:16]}...")
 ```
 
 ### Encrypted Packets (Require Keys)
