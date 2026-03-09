@@ -36,6 +36,9 @@ def print_formatted_packet(packet, keys: Optional[List[str]] = None):
     print(f'{bold("Payload Type:")} {get_payload_type_name(packet.payload_type)}')
     print(f'{bold("Total Bytes:")} {packet.total_bytes}')
 
+    # Path comes from the decoder (which applies path-length fallback for repeater-style adverts)
+    if packet.path_length and packet.path_length > 0:
+        print(f'{bold("Path Length:")} {packet.path_length} byte(s)')
     if packet.path and len(packet.path) > 0:
         print(f'{bold("Path:")} {" → ".join(packet.path)}')
 

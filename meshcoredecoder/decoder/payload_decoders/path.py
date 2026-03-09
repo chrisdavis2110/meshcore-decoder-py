@@ -149,22 +149,29 @@ class PathPayloadDecoder:
                     )
 
                     if decryption_result.success and decryption_result.data:
-                        # Parse decrypted path structure
-                        path_len = decryption_result.data['path_len']
+                        # Parse decrypted path structure (multi-byte path encoding)
+                        path_hash_size = decryption_result.data['path_hash_size']
+                        path_hash_count = decryption_result.data['path_hash_count']
                         path_bytes = decryption_result.data['path']
                         extra_type = decryption_result.data['extra_type']
                         extra_bytes = decryption_result.data['extra']
 
-                        # Convert path bytes to hex strings
-                        path_hashes = [byte_to_hex(b) for b in path_bytes]
+                        # One hex string per hop (each hop is path_hash_size bytes)
+                        path_hashes = []
+                        for i in range(path_hash_count):
+                            hop_start = i * path_hash_size
+                            hop_bytes = path_bytes[hop_start:hop_start + path_hash_size]
+                            path_hashes.append(bytes_to_hex(hop_bytes))
                         extra_data = bytes_to_hex(extra_bytes)
 
-                        result.path_length = path_len
+                        result.path_length = path_hash_count
                         result.path_hashes = path_hashes
                         result.extra_type = extra_type
                         result.extra_data = extra_data
                         result.decrypted = {
-                            'path_len': path_len,
+                            'path_len_byte': decryption_result.data['path_len_byte'],
+                            'path_hash_size': path_hash_size,
+                            'path_hash_count': path_hash_count,
                             'path_hashes': path_hashes,
                             'extra_type': extra_type,
                             'extra_data': extra_data
@@ -204,22 +211,28 @@ class PathPayloadDecoder:
                                 )
 
                                 if decryption_result.success and decryption_result.data:
-                                    # Parse decrypted path structure
-                                    path_len = decryption_result.data['path_len']
+                                    # Parse decrypted path structure (multi-byte path encoding)
+                                    path_hash_size = decryption_result.data['path_hash_size']
+                                    path_hash_count = decryption_result.data['path_hash_count']
                                     path_bytes = decryption_result.data['path']
                                     extra_type = decryption_result.data['extra_type']
                                     extra_bytes = decryption_result.data['extra']
 
-                                    # Convert path bytes to hex strings
-                                    path_hashes = [byte_to_hex(b) for b in path_bytes]
+                                    path_hashes = []
+                                    for i in range(path_hash_count):
+                                        hop_start = i * path_hash_size
+                                        hop_bytes = path_bytes[hop_start:hop_start + path_hash_size]
+                                        path_hashes.append(bytes_to_hex(hop_bytes))
                                     extra_data = bytes_to_hex(extra_bytes)
 
-                                    result.path_length = path_len
+                                    result.path_length = path_hash_count
                                     result.path_hashes = path_hashes
                                     result.extra_type = extra_type
                                     result.extra_data = extra_data
                                     result.decrypted = {
-                                        'path_len': path_len,
+                                        'path_len_byte': decryption_result.data['path_len_byte'],
+                                        'path_hash_size': path_hash_size,
+                                        'path_hash_count': path_hash_count,
                                         'path_hashes': path_hashes,
                                         'extra_type': extra_type,
                                         'extra_data': extra_data
@@ -240,22 +253,28 @@ class PathPayloadDecoder:
                                         shared_secret
                                     )
                                     if decryption_result.success and decryption_result.data:
-                                        # Parse decrypted path structure
-                                        path_len = decryption_result.data['path_len']
+                                        # Parse decrypted path structure (multi-byte path encoding)
+                                        path_hash_size = decryption_result.data['path_hash_size']
+                                        path_hash_count = decryption_result.data['path_hash_count']
                                         path_bytes = decryption_result.data['path']
                                         extra_type = decryption_result.data['extra_type']
                                         extra_bytes = decryption_result.data['extra']
 
-                                        # Convert path bytes to hex strings
-                                        path_hashes = [byte_to_hex(b) for b in path_bytes]
+                                        path_hashes = []
+                                        for i in range(path_hash_count):
+                                            hop_start = i * path_hash_size
+                                            hop_bytes = path_bytes[hop_start:hop_start + path_hash_size]
+                                            path_hashes.append(bytes_to_hex(hop_bytes))
                                         extra_data = bytes_to_hex(extra_bytes)
 
-                                        result.path_length = path_len
+                                        result.path_length = path_hash_count
                                         result.path_hashes = path_hashes
                                         result.extra_type = extra_type
                                         result.extra_data = extra_data
                                         result.decrypted = {
-                                            'path_len': path_len,
+                                            'path_len_byte': decryption_result.data['path_len_byte'],
+                                            'path_hash_size': path_hash_size,
+                                            'path_hash_count': path_hash_count,
                                             'path_hashes': path_hashes,
                                             'extra_type': extra_type,
                                             'extra_data': extra_data

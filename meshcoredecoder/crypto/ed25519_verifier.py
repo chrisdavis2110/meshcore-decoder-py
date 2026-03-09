@@ -34,24 +34,28 @@ class Ed25519SignatureVerifier:
         app_data_hex: str
     ) -> bool:
         """
-        Verify an Ed25519 signature for MeshCore advertisement packets
+        Verify an Ed25519 signature for MeshCore advertisement packets.
 
-        According to MeshCore protocol, the signed message for advertisements is:
-        public_key (32 bytes) + timestamp (4 bytes LE) + app_data (variable)
+        Signed message is public_key + timestamp + app_data (docs/payloads.md).
+        We also try timestamp + public_key + app_data in case firmware varies.
         """
         try:
-            # Convert hex strings to bytes
             public_key = hex_to_bytes(public_key_hex)
             signature = hex_to_bytes(signature_hex)
             app_data = hex_to_bytes(app_data_hex)
+            timestamp_bytes = timestamp.to_bytes(4, byteorder='little')
 
-            # Construct the signed message according to MeshCore format
-            message = Ed25519SignatureVerifier._construct_advert_signed_message(
-                public_key_hex, timestamp, app_data
-            )
+            # Primary: public_key + timestamp (LE) + app_data (per payloads.md)
+            message_pk_first = public_key + timestamp_bytes + app_data
+            if Ed25519SignatureVerifier._verify_signature(signature, message_pk_first, public_key):
+                return True
 
-            # Verify the signature
-            return Ed25519SignatureVerifier._verify_signature(signature, message, public_key)
+            # Alternative: timestamp + public_key + app_data (in case firmware uses this order)
+            message_ts_first = timestamp_bytes + public_key + app_data
+            if Ed25519SignatureVerifier._verify_signature(signature, message_ts_first, public_key):
+                return True
+
+            return False
         except Exception as error:
             print(f'Ed25519 signature verification failed: {error}')
             return False

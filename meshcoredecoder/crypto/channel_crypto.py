@@ -1147,20 +1147,30 @@ class ChannelCrypto:
             if not decrypted_bytes or len(decrypted_bytes) < 2:
                 return DecryptionResult(success=False, error='Decrypted content too short')
 
-            # Parse MeshCore path format: path_len(1) + path(path_len) + extra_type(1) + extra(variable)
-            path_len = decrypted_bytes[0]
+            # Parse MeshCore path format (same encoding as packet header): path_len_byte(1) with
+            # bits 7:6 = hash_size-1 (1/2/3 bytes per hop), bits 5:0 = hop count (0-63).
+            # path_byte_len = hop_count * hash_size; then extra_type(1) + extra(variable).
+            path_len_byte = decrypted_bytes[0]
+            path_hash_size = (path_len_byte >> 6) + 1  # 1, 2, or 3; 4 = reserved
+            path_hash_count = path_len_byte & 63
+            path_byte_len = path_hash_count * path_hash_size
 
-            if len(decrypted_bytes) < 1 + path_len + 1:
+            if path_hash_size == 4:
+                return DecryptionResult(success=False, error='Reserved path hash size in Path payload')
+
+            if len(decrypted_bytes) < 1 + path_byte_len + 1:
                 return DecryptionResult(success=False, error='Decrypted content too short for path structure')
 
-            path = decrypted_bytes[1:1 + path_len]
-            extra_type = decrypted_bytes[1 + path_len]
-            extra = decrypted_bytes[2 + path_len:] if len(decrypted_bytes) > 2 + path_len else b''
+            path = decrypted_bytes[1:1 + path_byte_len]
+            extra_type = decrypted_bytes[1 + path_byte_len]
+            extra = decrypted_bytes[2 + path_byte_len:] if len(decrypted_bytes) > 2 + path_byte_len else b''
 
             return DecryptionResult(
                 success=True,
                 data={
-                    'path_len': path_len,
+                    'path_len_byte': path_len_byte,
+                    'path_hash_size': path_hash_size,
+                    'path_hash_count': path_hash_count,
                     'path': path,
                     'extra_type': extra_type,
                     'extra': extra

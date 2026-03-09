@@ -20,7 +20,9 @@ class DecodedPacket:
         is_valid: bool,
         transport_codes: Optional[List[int]] = None,
         path: Optional[List[str]] = None,
-        errors: Optional[List[str]] = None
+        errors: Optional[List[str]] = None,
+        path_byte_length: Optional[int] = None,
+        path_hash_size: Optional[int] = None,
     ):
         # Packet metadata
         self.message_hash = message_hash
@@ -30,10 +32,12 @@ class DecodedPacket:
         self.payload_type = payload_type
         self.payload_version = payload_version
 
-        # Transport and routing
+        # Transport and routing (path_length = hop count; path_byte_length = total path bytes)
         self.transport_codes = transport_codes
         self.path_length = path_length
         self.path = path
+        self.path_byte_length = path_byte_length if path_byte_length is not None else path_length
+        self.path_hash_size = path_hash_size  # 1, 2, or 3 bytes per hop
 
         # Payload data
         self.payload = payload
@@ -62,6 +66,10 @@ class DecodedPacket:
 
         if self.transport_codes:
             result['transportCodes'] = list(self.transport_codes)
+        if getattr(self, 'path_byte_length', None) is not None and self.path_byte_length != self.path_length:
+            result['pathByteLength'] = self.path_byte_length
+        if getattr(self, 'path_hash_size', None) is not None:
+            result['pathHashSize'] = self.path_hash_size
 
         if self.errors:
             result['errors'] = self.errors

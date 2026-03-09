@@ -152,40 +152,70 @@ class MeshCorePacketDecoder:
                     ))
                 offset += 4
 
-            # Parse path
+            # Parse path (multi-byte path encoding per meshcore-decoder PR #8 / Packet.h)
+            # Bits 7:6 = hash size selector: (path_len_byte >> 6) + 1 = 1, 2, or 3 bytes per hop
+            # Bits 5:0 = hop count (0-63). path_byte_length = hop_count * hash_size
             if len(bytes_data) < offset + 1:
                 raise ValueError('Packet too short for path length')
-            path_length = bytes_data[offset]
+            path_length_byte = bytes_data[offset]
+            path_hash_size, path_hop_count, path_byte_length = MeshCorePacketDecoder._decode_path_len_byte(path_length_byte)
+
+            payload_start = offset + 1
+            remaining_after_path = len(bytes_data) - payload_start
+
+            # Use legacy (raw path byte count) only when:
+            # - Reserved hash size (bits 7:6 = 11), or
+            # - Path would extend past packet (path_byte_length > remaining_after_path).
+            # Do NOT use min_payload to trigger legacy; valid new-encoding packets can have small payloads.
+            use_legacy = False
+            if path_hash_size == 4:
+                use_legacy = True
+            elif path_byte_length > remaining_after_path:
+                use_legacy = True
+
+            if use_legacy:
+                # Legacy: path_length byte = raw path byte count (1 byte per hop). Cap at packet and MAX_PATH_SIZE (64).
+                path_byte_length = min(path_length_byte, remaining_after_path, 64)
+                path_hop_count = path_byte_length
+                path_hash_size = 1
 
             if include_structure:
-                if route_type in (RouteType.Direct, RouteType.TransportDirect):
-                    path_length_description = f'For "Direct" packets, this contains routing instructions. {path_length} bytes of routing instructions (decreases as packet travels)'
+                hash_desc = f' × {path_hash_size}-byte hashes' if path_hash_size > 1 else ''
+                if path_hop_count == 0:
+                    path_length_description = f'No path data{hash_desc}' if path_hash_size > 1 else 'No path data'
+                elif route_type in (RouteType.Direct, RouteType.TransportDirect):
+                    path_length_description = f'{path_hop_count} hop(s){hash_desc} of routing instructions (decreases as packet travels)'
                 elif route_type in (RouteType.Flood, RouteType.TransportFlood):
-                    path_length_description = f'{path_length} bytes showing route taken (increases as packet floods)'
+                    path_length_description = f'{path_hop_count} hop(s){hash_desc} showing route taken (increases as packet floods)'
                 else:
-                    path_length_description = f'Path contains {path_length} bytes'
+                    path_length_description = f'Path: {path_hop_count} hop(s){hash_desc}'
 
                 segments.append(PacketSegment(
                     name='Path Length',
                     description=path_length_description,
                     start_byte=offset,
                     end_byte=offset,
-                    value=f'0x{path_length:02x}'
+                    value=f'0x{path_length_byte:02x}'
                 ))
             offset += 1
 
-            if len(bytes_data) < offset + path_length:
+            if len(bytes_data) < offset + path_byte_length:
                 raise ValueError('Packet too short for path data')
 
-            # Convert path data to hex strings
-            path_bytes = bytes_data[offset:offset + path_length]
-            path: Optional[List[str]] = [byte_to_hex(b) for b in path_bytes] if path_length > 0 else None
+            # Convert path data to list of hex strings (one per hop, hash_size bytes each)
+            path: Optional[List[str]] = None
+            if path_hop_count > 0 and path_byte_length > 0:
+                path = []
+                for i in range(path_hop_count):
+                    hop_start = offset + i * path_hash_size
+                    hop_bytes = bytes_data[hop_start:hop_start + path_hash_size]
+                    path.append(bytes_to_hex(hop_bytes))
 
-            if include_structure and path_length > 0:
+            if include_structure and path_byte_length > 0:
                 if payload_type == PayloadType.Trace:
-                    # TRACE packets have SNR values in path
+                    # TRACE packets: path holds SNR values (single-byte entries)
                     snr_values = []
-                    for i in range(path_length):
+                    for i in range(path_byte_length):
                         snr_raw = bytes_data[offset + i]
                         snr_signed = snr_raw - 256 if snr_raw > 127 else snr_raw
                         snr_db = snr_signed / 4.0
@@ -194,25 +224,24 @@ class MeshCorePacketDecoder:
                         name='Path SNR Data',
                         description=f'SNR values collected during trace: {", ".join(snr_values)}',
                         start_byte=offset,
-                        end_byte=offset + path_length - 1,
-                        value=bytes_to_hex(bytes_data[offset:offset + path_length])
+                        end_byte=offset + path_byte_length - 1,
+                        value=bytes_to_hex(bytes_data[offset:offset + path_byte_length])
                     ))
                 else:
+                    path_description = f'Routing path ({path_hash_size}-byte hash per hop)' if path_hash_size > 1 else 'Routing path information'
                     if route_type in (RouteType.Direct, RouteType.TransportDirect):
-                        path_description = 'Routing instructions (bytes are stripped at each hop as packet travels to destination)'
+                        path_description = f'Routing instructions ({path_hash_size}-byte hashes stripped at each hop)'
                     elif route_type in (RouteType.Flood, RouteType.TransportFlood):
-                        path_description = 'Historical route taken (bytes are added as packet floods through network)'
-                    else:
-                        path_description = 'Routing path information'
+                        path_description = f'Historical route taken ({path_hash_size}-byte hashes per hop)'
 
                     segments.append(PacketSegment(
                         name='Path Data',
                         description=path_description,
                         start_byte=offset,
-                        end_byte=offset + path_length - 1,
-                        value=bytes_to_hex(bytes_data[offset:offset + path_length])
+                        end_byte=offset + path_byte_length - 1,
+                        value=bytes_to_hex(bytes_data[offset:offset + path_byte_length])
                     ))
-            offset += path_length
+            offset += path_byte_length
 
             # Extract payload
             payload_bytes = bytes_data[offset:]
@@ -315,8 +344,10 @@ class MeshCorePacketDecoder:
                     value=bytes_to_hex(payload_bytes)
                 ))
 
-            # Calculate message hash
-            message_hash = MeshCorePacketDecoder._calculate_message_hash(bytes_data, route_type, payload_type, payload_version)
+            # Calculate message hash (use same path_byte_length we used for decoding)
+            message_hash = MeshCorePacketDecoder._calculate_message_hash(
+                bytes_data, route_type, payload_type, payload_version, path_byte_length_override=path_byte_length
+            )
 
             packet = DecodedPacket(
                 message_hash=message_hash,
@@ -324,11 +355,13 @@ class MeshCorePacketDecoder:
                 payload_type=payload_type,
                 payload_version=payload_version,
                 transport_codes=transport_codes,
-                path_length=path_length,
+                path_length=path_hop_count,
                 path=path,
                 payload={'raw': payload_hex, 'decoded': decoded_payload},
                 total_bytes=len(bytes_data),
-                is_valid=True
+                is_valid=True,
+                path_byte_length=path_byte_length,
+                path_hash_size=path_hash_size if path_hash_size != 1 else None,
             )
 
             structure = PacketStructure(
@@ -387,7 +420,7 @@ class MeshCorePacketDecoder:
                 advert_payload = result['packet'].payload['decoded']
                 bytes_data = hex_to_bytes(hex_data)
 
-                # Calculate payload start offset
+                # Calculate payload start offset (use same path_length as decoded packet, which may use fallback)
                 offset = 1  # Skip header
 
                 # Skip transport codes if present
@@ -395,10 +428,9 @@ class MeshCorePacketDecoder:
                 if route_type in (RouteType.TransportFlood, RouteType.TransportDirect):
                     offset += 4
 
-                # Skip path data
-                if len(bytes_data) > offset:
-                    path_length = bytes_data[offset]
-                    offset += 1 + path_length
+                # Skip path data: use the packet's path_byte_length (total path bytes after path_len byte)
+                path_byte_length = getattr(result['packet'], 'path_byte_length', result['packet'].path_length) or 0
+                offset += 1 + path_byte_length
 
                 # Get the payload bytes
                 payload_bytes = bytes_data[offset:]
@@ -412,11 +444,8 @@ class MeshCorePacketDecoder:
                 if verified_advert:
                     # Update the payload with verification results
                     result['packet'].payload['decoded'] = verified_advert
-
-                    # If the advertisement signature is invalid, mark the whole packet as invalid
-                    if not verified_advert.is_valid:
-                        result['packet'].is_valid = False
-                        result['packet'].errors = verified_advert.errors or ['Invalid advertisement signature']
+                    # Do not mark the whole packet invalid when only the advert signature fails;
+                    # packet stays valid so decoded advert and signature_valid/errors are visible.
 
                     # Update structure segments if needed
                     if include_structure and hasattr(verified_advert, 'segments') and verified_advert.segments:
@@ -447,16 +476,18 @@ class MeshCorePacketDecoder:
                     errors.append('Packet too short for transport codes')
                 offset += 4
 
-            # Check path length
+            # Check path (multi-byte encoding)
             if len(bytes_data) < offset + 1:
                 errors.append('Packet too short for path length')
             else:
-                path_length = bytes_data[offset]
+                path_len_byte = bytes_data[offset]
                 offset += 1
-
-                if len(bytes_data) < offset + path_length:
+                hash_size, hop_count, byte_length = MeshCorePacketDecoder._decode_path_len_byte(path_len_byte)
+                if hash_size == 4:
+                    errors.append('Invalid path length byte: reserved hash size (bits 7:6 = 11)')
+                if len(bytes_data) < offset + byte_length:
                     errors.append('Packet too short for path data')
-                offset += path_length
+                offset += byte_length
 
             # Check if we have payload data
             if offset >= len(bytes_data):
@@ -468,20 +499,59 @@ class MeshCorePacketDecoder:
         return ValidationResult(is_valid=len(errors) == 0, errors=errors if errors else None)
 
     @staticmethod
-    def _calculate_message_hash(bytes_data: bytes, route_type: RouteType, payload_type: PayloadType, payload_version: PayloadVersion) -> str:
+    def _decode_path_len_byte(path_len_byte: int) -> tuple:
+        """
+        Decode path length byte per meshcore-decoder PR #8 / Packet.h.
+        Bits 7:6 = hash size selector: (path_len_byte >> 6) + 1 = 1, 2, or 3 bytes per hop.
+        Bits 5:0 = hop count (0-63).
+        Returns (hash_size, hop_count, byte_length). hash_size 4 = reserved.
+        """
+        hash_size = (path_len_byte >> 6) + 1  # 1, 2, or 3; 4 if bits 7:6 = 11 (reserved)
+        hop_count = path_len_byte & 63
+        byte_length = hop_count * hash_size
+        return (hash_size, hop_count, byte_length)
+
+    @staticmethod
+    def _min_payload_for_type(payload_type: PayloadType) -> int:
+        """Minimum payload size in bytes for the payload type (for path-length fallback)."""
+        mins = {
+            PayloadType.Advert: 101,      # public_key(32) + timestamp(4) + signature(64) + flags(1)
+            PayloadType.AnonRequest: 35,  # dest(1) + pubkey(32) + MAC(2)
+            PayloadType.Trace: 9,
+            PayloadType.Ack: 4,
+            PayloadType.Control: 1,
+            PayloadType.Request: 4,
+            PayloadType.Response: 4,
+            PayloadType.TextMessage: 4,
+            PayloadType.Path: 4,
+            PayloadType.GroupText: 3,
+            PayloadType.GroupData: 3,
+        }
+        return mins.get(payload_type, 0)
+
+    @staticmethod
+    def _calculate_message_hash(
+        bytes_data: bytes,
+        route_type: RouteType,
+        payload_type: PayloadType,
+        payload_version: PayloadVersion,
+        path_byte_length_override: Optional[int] = None,
+    ) -> str:
         """Calculate message hash for a packet"""
+        def skip_path(off: int) -> int:
+            if path_byte_length_override is not None:
+                return off + 1 + path_byte_length_override
+            if len(bytes_data) <= off:
+                return off
+            _, _, path_byte_len = MeshCorePacketDecoder._decode_path_len_byte(bytes_data[off])
+            return off + 1 + path_byte_len
+
         # For TRACE packets, use the trace tag as hash
         if payload_type == PayloadType.Trace and len(bytes_data) >= 13:
             offset = 1
-
-            # Skip transport codes if present
             if route_type in (RouteType.TransportFlood, RouteType.TransportDirect):
                 offset += 4
-
-            # Skip path data
-            if len(bytes_data) > offset:
-                path_len = bytes_data[offset]
-                offset += 1 + path_len
+            offset = skip_path(offset)
 
             # Extract trace tag
             if len(bytes_data) >= offset + 4:
@@ -494,15 +564,9 @@ class MeshCorePacketDecoder:
         # For other packets, create hash from constant parts
         constant_header = (payload_type.value << 2) | (payload_version.value << 6)
         offset = 1
-
-        # Skip transport codes if present
         if route_type in (RouteType.TransportFlood, RouteType.TransportDirect):
             offset += 4
-
-        # Skip path data
-        if len(bytes_data) > offset:
-            path_len = bytes_data[offset]
-            offset += 1 + path_len
+        offset = skip_path(offset)
 
         payload_data = bytes_data[offset:]
         hash_input = [constant_header] + list(payload_data)
