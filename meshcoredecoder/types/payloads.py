@@ -43,6 +43,7 @@ class AdvertPayload(BasePayload):
         app_data: Dict[str, Any],
         signature_valid: Optional[bool] = None,
         signature_error: Optional[str] = None,
+        hash_mode: Optional[int] = None,
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -52,6 +53,7 @@ class AdvertPayload(BasePayload):
         self.signature_valid = signature_valid
         self.signature_error = signature_error
         self.app_data = app_data
+        self.hash_mode = hash_mode
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization"""
@@ -71,6 +73,8 @@ class AdvertPayload(BasePayload):
             result['signatureValid'] = self.signature_valid
         if self.signature_error:
             result['signatureError'] = self.signature_error
+        if self.hash_mode is not None:
+            result['hashMode'] = self.hash_mode
 
         # Add location if present
         if self.app_data.get('location'):

@@ -265,6 +265,8 @@ class MeshCorePacketDecoder:
                 decoded_payload = result
                 if result and hasattr(result, 'segments') and result.segments:
                     payload_segments.extend(result.segments)
+                if decoded_payload is not None:
+                    decoded_payload.hash_mode = path_hash_size
             elif payload_type == PayloadType.Trace:
                 result = TracePayloadDecoder.decode(payload_bytes, path, {'include_segments': include_structure, 'segment_offset': 0})
                 decoded_payload = result
@@ -442,6 +444,7 @@ class MeshCorePacketDecoder:
                 )
 
                 if verified_advert:
+                    verified_advert.hash_mode = getattr(advert_payload, 'hash_mode', None)
                     # Update the payload with verification results
                     result['packet'].payload['decoded'] = verified_advert
                     # Do not mark the whole packet invalid when only the advert signature fails;
